@@ -1,0 +1,122 @@
+/* AdminLogin.css - Green and White Theme */
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #f8fff8 0%, #e8f5e8 100%);
+  padding: 2rem;
+}
+
+.admin-login-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(45, 122, 45, 0.15);
+  padding: 3rem;
+  width: 100%;
+  max-width: 450px;
+  border-top: 4px solid #2d7a2d;
+}
+
+.admin-login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.admin-login-header h2 {
+  color: #2d7a2d;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.admin-login-header p {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.admin-login-error {
+  background: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  border-left: 4px solid #c33;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  color: #2d7a2d;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.form-group input {
+  padding: 0.875rem 1rem;
+  border: 2px solid #e8f5e8;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #f8fff8;
+  color: #333;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #2d7a2d;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(45, 122, 45, 0.1);
+}
+
+.form-group input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-login-button {
+  background: linear-gradient(135deg, #2d7a2d 0%, #1e5f1e 100%);
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+}
+
+.admin-login-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(45, 122, 45, 0.3);
+}
+
+.admin-login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  .admin-login-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .admin-login-header h2 {
+    font-size: 1.5rem;
+  }
+}
+
