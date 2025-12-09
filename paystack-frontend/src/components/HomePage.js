@@ -32,7 +32,7 @@ const HomePage = () => {
       {/* About Section */}
       <section className="about-section">
         <div className="container">
-          <h2>About Our Faculty</h2>
+          <h2>About NUESA ACU</h2>
           <div className="about-grid">
             <div className="about-card">
               <h3>Our Mission</h3>
