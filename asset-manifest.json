@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "/payment-website/static/css/main.594bf915.css",
+    "main.js": "/payment-website/static/js/main.66237917.js",
+    "static/js/453.faad90b8.chunk.js": "/payment-website/static/js/453.faad90b8.chunk.js",
+    "static/media/gen sec.png": "/payment-website/static/media/gen sec.5dce0ad57dd34639511b.png",
+    "static/media/president.png": "/payment-website/static/media/president.dd2337c96d39e7824a94.png",
+    "static/media/vp.png": "/payment-website/static/media/vp.fda08d7938fabad2e1dc.png",
+    "static/media/fin sec.png": "/payment-website/static/media/fin sec.5047af5dbe819689b15d.png",
+    "index.html": "/payment-website/index.html",
+    "main.594bf915.css.map": "/payment-website/static/css/main.594bf915.css.map",
+    "main.66237917.js.map": "/payment-website/static/js/main.66237917.js.map",
+    "453.faad90b8.chunk.js.map": "/payment-website/static/js/453.faad90b8.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.594bf915.css",
+    "static/js/main.66237917.js"
+  ]
+}
