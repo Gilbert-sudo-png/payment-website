@@ -15,7 +15,9 @@ const SuccessPage = ({ paymentData, onBackToPayment }) => {
   const verifyPayment = async (reference) => {
     try {
       // Call your backend API to verify the payment
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+      const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000'
+        : (process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000');
       const response = await fetch(`${backendUrl}/api/verify-payment/${reference}`, {
         method: 'GET',
         headers: {

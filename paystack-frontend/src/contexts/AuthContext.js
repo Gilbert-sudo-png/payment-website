@@ -10,7 +10,9 @@ export const useAuth = () => {
   return context;
 };
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000'
+  : (process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000');
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -38,7 +40,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (matric, password) => {
+  const login = async (matric, email) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
@@ -46,7 +48,7 @@ export const AuthProvider = ({ children }) => {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ matric, password }),
+        body: JSON.stringify({ matric, email }),
       });
 
       const data = await response.json();

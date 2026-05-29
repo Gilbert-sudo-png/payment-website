@@ -1,12 +1,14 @@
 /* Navbar Styles - Green and White Theme */
 
 .navbar {
-  background: white;
-  box-shadow: 0 2px 20px rgba(45, 122, 45, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 1px 0 rgba(27, 94, 32, 0.08);
   position: sticky;
   top: 0;
   z-index: 1000;
-  border-bottom: 2px solid #f0f8f0;
+  border-bottom: 1px solid rgba(27, 94, 32, 0.1);
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 
 .nav-container {
@@ -23,14 +25,14 @@
   display: flex;
   align-items: center;
   text-decoration: none;
-  color: #2d7a2d;
+  color: #2e7d32;
   font-weight: 700;
   font-size: 1.2rem;
   transition: color 0.3s ease;
 }
 
 .nav-logo:hover {
-  color: #1e5f1e;
+  color: #1b5e20;
   text-decoration: none;
 }
 
@@ -64,13 +66,13 @@
 }
 
 .nav-link:hover {
-  color: #2d7a2d;
+  color: #2e7d32;
   background: #f8fff8;
   text-decoration: none;
 }
 
 .nav-link.active {
-  color: #2d7a2d;
+  color: #2e7d32;
   background: #f0f8f0;
 }
 
@@ -82,7 +84,7 @@
   transform: translateX(-50%);
   width: 20px;
   height: 2px;
-  background: #2d7a2d;
+  background: #2e7d32;
   border-radius: 1px;
 }
 
@@ -103,16 +105,16 @@
 }
 
 .nav-btn-primary {
-  background: #2d7a2d;
+  background: #2e7d32;
   color: white;
-  border-color: #2d7a2d;
+  border-color: #2e7d32;
 }
 
 .nav-btn-primary:hover {
-  background: #1e5f1e;
-  border-color: #1e5f1e;
+  background: #1b5e20;
+  border-color: #1b5e20;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(45, 122, 45, 0.3);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.35);
   text-decoration: none;
   color: white;
 }
@@ -128,15 +130,15 @@
 }
 
 .nav-user-name {
-  color: #2d7a2d;
+  color: #2e7d32;
   font-weight: 500;
   font-size: 0.9rem;
 }
 
 .nav-logout-btn {
   background: transparent;
-  border: 1px solid #2d7a2d;
-  color: #2d7a2d;
+  border: 1px solid #2e7d32;
+  color: #2e7d32;
   padding: 4px 12px;
   border-radius: 15px;
   font-size: 0.8rem;
@@ -146,7 +148,7 @@
 }
 
 .nav-logout-btn:hover {
-  background: #2d7a2d;
+  background: #2e7d32;
   color: white;
   transform: translateY(-1px);
 }
