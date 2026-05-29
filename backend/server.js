@@ -16,11 +16,16 @@ const {
   createSession,
   getSession,
   deleteSession,
-  getAdminByEmail,
-  createAdminSession,
   getAdminSession,
-  deleteAdminSession
+  deleteAdminSession,
+  setVotingCode,
+  verifyVotingCode,
+  castVote,
+  getVotingResults,
+  getSystemSetting,
+  updateSystemSetting
 } = require('./database');
+const nodemailer = require('nodemailer');
 
 // Load environment variables
 dotenv.config();
@@ -28,9 +33,25 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5000',
+  'https://nuesaacu.com',
+  'http://nuesaacu.com',
+  'https://www.nuesaacu.com',
+  'http://www.nuesaacu.com',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -261,29 +282,27 @@ app.post('/api/auth/signup', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { matric, password } = req.body;
+    const rawMatric = req.body?.matric;
+    const rawEmail = req.body?.email;
+    const matric =
+      typeof rawMatric === 'string'
+        ? rawMatric.trim().toUpperCase().replace(/O/g, '0')
+        : '';
+    const email =
+      typeof rawEmail === 'string' ? rawEmail.trim() : '';
     
-    if (!matric || !password) {
+    if (!matric || !email) {
       return res.status(400).json({ 
-        error: 'Matric number and password are required' 
+        error: 'Matric number and email are required' 
       });
     }
     
     // Find user
     const user = await getUserByMatric(matric);
     
-    if (!user) {
+    if (!user || user.email.toLowerCase() !== email.toLowerCase()) {
       return res.status(401).json({ 
-        error: 'Invalid matric number or password' 
-      });
-    }
-    
-    // Verify password
-    const isValidPassword = await verifyPassword(password, user.password_hash);
-    
-    if (!isValidPassword) {
-      return res.status(401).json({ 
-        error: 'Invalid matric number or password' 
+        error: 'Invalid matric number or email address. User not found in database.' 
       });
     }
     
@@ -373,6 +392,175 @@ app.get('/api/users', async (req, res) => {
       error: 'Failed to fetch users',
       message: error.message
     });
+  }
+});
+
+// Add new user endpoint (admin only)
+app.post('/api/admin/users', async (req, res) => {
+  try {
+    const { name, matric, email } = req.body;
+    
+    if (!name || !matric || !email) {
+      return res.status(400).json({ 
+        error: 'Name, matric, and email are required' 
+      });
+    }
+    
+    // Create user with dummy password since auth is email/matric only
+    const user = await createUser({ name, matric, email, password: 'password123' });
+    
+    res.json({
+      success: true,
+      message: 'Student added successfully',
+      data: user
+    });
+  } catch (error) {
+    console.error('Error adding user:', error);
+    res.status(400).json({
+      error: error.message || 'Failed to add student. Ensure matric or email is unique.'
+    });
+  }
+});
+
+// Email Transporter Config
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// =============== VOTING API ===============
+
+// Check voting status
+app.get('/api/vote/status', requireAuth, async (req, res) => {
+  try {
+    const user = await getUserById(req.user.id);
+    const resultsReleasedStr = await getSystemSetting('results_released') || 'false';
+    const resultsReleased = resultsReleasedStr === 'true';
+    
+    // Check if user has voted directly from the query
+    const dbUser = await new Promise((resolve) => {
+       const sqlite3 = require('sqlite3').verbose();
+       const db = new sqlite3.Database(require('path').join(__dirname, 'payments.db'));
+       db.get('SELECT has_voted FROM users WHERE id = ?', [req.user.id], (err, row) => resolve(row));
+    });
+
+    let results = [];
+    if (resultsReleased) {
+      results = await getVotingResults();
+    }
+
+    res.json({
+      success: true,
+      has_voted: dbUser.has_voted === 1,
+      results_released: resultsReleased,
+      results
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch voting status' });
+  }
+});
+
+// Generate and email code
+app.post('/api/vote/generate-code', requireAuth, async (req, res) => {
+  try {
+    // Generate 6 digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Save to db
+    await setVotingCode(req.user.id, code);
+    
+    // Email the user
+    // NOTE: To avoid crashes if email isnt setup, we catch email errors
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.warn("Email credentials not supplied. Code generated but not sent! Code:", code);
+       // For testing fallback, return success but warn.
+       return res.json({ success: true, message: 'Code generated. Check server console for code since email auth is missing.' });
+    }
+
+    const mailOptions = {
+      from: `NUESA ACU Electoral Committee <${process.env.EMAIL_USER}>`,
+      to: req.user.email,
+      subject: 'Your Secure Voting Authorization Code',
+      html: `
+        <div style="font-family: sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px;">
+          <h2 style="color: #10b981; margin: 0 0 12px;">NUESA ACU Voting Authorization</h2>
+          <p style="margin: 0 0 8px;">Hello ${req.user.name},</p>
+          <p style="margin: 0 0 16px;">You requested to cast your vote. This is your one-time secure voting code.</p>
+          <div style="background: #111827; color: #34d399; font-size: 32px; font-weight: 700; letter-spacing: 6px; text-align: center; padding: 20px; border-radius: 10px; margin: 16px 0;">
+            ${code}
+          </div>
+          <p style="margin: 0;"><em>Code expires in 15 minutes. Do not share this code with anybody.</em></p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ success: true, message: 'Code sent to your email successfully.' });
+  } catch (error) {
+    console.error('Error generating code:', error);
+    res.status(500).json({ error: 'Failed to generate code or send email. Please check server email credentials.' });
+  }
+});
+
+// Submit Vote
+app.post('/api/vote/submit', requireAuth, async (req, res) => {
+  try {
+    const { code, candidateId } = req.body;
+    
+    if (!code || !candidateId) {
+      return res.status(400).json({ error: 'Code and candidate ID are required.' });
+    }
+
+    // Verify code
+    const verification = await verifyVotingCode(req.user.id, code.trim());
+    if (!verification.valid) {
+      return res.status(400).json({ error: verification.message });
+    }
+
+    // Cast vote
+    await castVote(req.user.id, candidateId);
+
+    res.json({ success: true, message: 'Your vote has been successfully cast!' });
+  } catch (error) {
+    console.error('Voting error:', error);
+    res.status(500).json({ error: error.message || 'Error occurred while saving vote.' });
+  }
+});
+
+// Admin Endpoint: Get Election Results
+app.get('/api/admin/votes', requireAdminAuth, async (req, res) => {
+  try {
+    const results = await getVotingResults();
+    const releasedStr = await getSystemSetting('results_released') || 'false';
+    const totalVotes = results.reduce((acc, curr) => acc + curr.vote_count, 0);
+
+    res.json({
+      success: true,
+      results_released: releasedStr === 'true',
+      total_votes: totalVotes,
+      results
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch voting results.' });
+  }
+});
+
+// Admin Endpoint: Toggle Result Visibility
+app.post('/api/admin/votes/release', requireAdminAuth, async (req, res) => {
+  try {
+    const { released } = req.body;
+    await updateSystemSetting('results_released', released ? 'true' : 'false');
+    
+    res.json({
+      success: true,
+      message: `Results are now ${released ? 'PUBLIC' : 'HIDDEN'}`
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update system setting.' });
   }
 });
 

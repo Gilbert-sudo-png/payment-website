@@ -124,6 +124,44 @@ const initializeDatabase = () => {
         console.error('Error adding matric column:', err.message);
       }
     });
+
+    // Voting System Additions
+    db.run(`ALTER TABLE users ADD COLUMN has_voted INTEGER DEFAULT 0`, (err) => {
+      if (err && !err.message.includes('duplicate column')) console.error('Error adding has_voted:', err.message);
+    });
+    db.run(`ALTER TABLE users ADD COLUMN voting_code TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) console.error('Error adding voting_code:', err.message);
+    });
+    db.run(`ALTER TABLE users ADD COLUMN code_expires_at DATETIME`, (err) => {
+      if (err && !err.message.includes('duplicate column')) console.error('Error adding code_expires_at:', err.message);
+    });
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS votes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER UNIQUE NOT NULL,
+        candidate_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+      )
+    `, (err) => {
+      if (err) console.error('Error creating votes table:', err.message);
+      else console.log('Votes table ready.');
+    });
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        setting_key TEXT PRIMARY KEY,
+        setting_value TEXT NOT NULL
+      )
+    `, (err) => {
+      if (err) console.error('Error creating settings table:', err.message);
+      else {
+        // Initialize default setting
+        db.run(`INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('results_released', 'false')`);
+        console.log('System settings table ready.');
+      }
+    });
   });
 };
 
@@ -437,6 +475,121 @@ const deleteAdminSession = (sessionId) => {
   });
 };
 
+// Voting functions
+const setVotingCode = (userId, code) => {
+  return new Promise((resolve, reject) => {
+    // Code expires in 15 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    db.run(
+      'UPDATE users SET voting_code = ?, code_expires_at = ? WHERE id = ?',
+      [code, expiresAt, userId],
+      function(err) {
+        if (err) reject(err);
+        else resolve(true);
+      }
+    );
+  });
+};
+
+const verifyVotingCode = (userId, code) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      'SELECT voting_code, code_expires_at, has_voted FROM users WHERE id = ?',
+      [userId],
+      (err, user) => {
+        if (err) return reject(err);
+        if (!user) return resolve({ valid: false, message: 'User not found' });
+        if (user.has_voted) return resolve({ valid: false, message: 'User has already voted' });
+        
+        if (user.voting_code !== code) {
+          return resolve({ valid: false, message: 'Invalid code' });
+        }
+        
+        if (new Date() > new Date(user.code_expires_at)) {
+          return resolve({ valid: false, message: 'Code has expired' });
+        }
+        
+        resolve({ valid: true });
+      }
+    );
+  });
+};
+
+const castVote = (userId, candidateId) => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      db.run(
+        'INSERT INTO votes (user_id, candidate_id) VALUES (?, ?)',
+        [userId, candidateId],
+        (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            if (err.message.includes('UNIQUE constraint failed')) {
+              return reject(new Error('User has already voted'));
+            }
+            return reject(err);
+          }
+          
+          db.run(
+            'UPDATE users SET has_voted = 1, voting_code = NULL, code_expires_at = NULL WHERE id = ?',
+            [userId],
+            (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                return reject(err);
+              }
+              db.run('COMMIT');
+              resolve(true);
+            }
+          );
+        }
+      );
+    });
+  });
+};
+
+const getVotingResults = () => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT candidate_id, COUNT(*) as vote_count 
+       FROM votes 
+       GROUP BY candidate_id`,
+      [],
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      }
+    );
+  });
+};
+
+const getSystemSetting = (key) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      'SELECT setting_value FROM system_settings WHERE setting_key = ?',
+      [key],
+      (err, row) => {
+        if (err) reject(err);
+        else resolve(row ? row.setting_value : null);
+      }
+    );
+  });
+};
+
+const updateSystemSetting = (key, value) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'INSERT OR REPLACE INTO system_settings (setting_key, setting_value) VALUES (?, ?)',
+      [key, value],
+      function(err) {
+        if (err) reject(err);
+        else resolve(true);
+      }
+    );
+  });
+};
+
 module.exports = {
   initializeDatabase,
   savePayment,
@@ -454,5 +607,11 @@ module.exports = {
   getAdminByEmail,
   createAdminSession,
   getAdminSession,
-  deleteAdminSession
+  deleteAdminSession,
+  setVotingCode,
+  verifyVotingCode,
+  castVote,
+  getVotingResults,
+  getSystemSetting,
+  updateSystemSetting
 };
