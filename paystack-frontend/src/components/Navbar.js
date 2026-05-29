@@ -54,14 +54,14 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
           
           {/* Logo Section */}
-          <Link to="/" className="flex items-center gap-4 group">
+          <Link to="/" className="flex items-center gap-2 md:gap-4 group">
             <div className="relative">
               <div className="absolute inset-0 bg-emerald-500 rounded-full blur group-hover:blur-md opacity-40 group-hover:opacity-70 transition-all duration-300"></div>
-              <img src={studentLogo} alt="NUESA Logo" className="relative w-11 h-11 md:w-12 md:h-12 rounded-full border border-gray-700 object-cover z-10" />
+              <img src={studentLogo} alt="NUESA Logo" className="relative w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-700 object-cover z-10" />
             </div>
-            <span className="font-sans font-black text-xl md:text-2xl text-white tracking-widest uppercase flex flex-col justify-center">
+            <span className="font-sans font-black text-lg md:text-2xl text-white tracking-widest uppercase flex flex-col justify-center">
               NUESA
-              <span className="text-[0.6rem] md:text-xs text-emerald-400 font-bold tracking-[0.2em] -mt-1 opacity-80 group-hover:opacity-100 group-hover:text-cyan-400 transition-colors">ACU Portal</span>
+              <span className="text-[0.55rem] md:text-xs text-emerald-400 font-bold tracking-[0.2em] -mt-1 opacity-80 group-hover:opacity-100 group-hover:text-cyan-400 transition-colors">ACU Portal</span>
             </span>
           </Link>
 
@@ -119,57 +119,66 @@ const Navbar = () => {
           {/* Mobile Menu Toggle */}
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden relative z-50 text-emerald-400 p-2 rounded-full bg-gray-900/80 border border-gray-800"
+            className="lg:hidden relative z-50 text-emerald-400 p-2.5 rounded-full bg-gray-900/80 border border-gray-800 transition-colors"
           >
             {isMobileMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             ) : (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             )}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      <div className={`fixed inset-0 bg-gray-950/95 backdrop-blur-xl z-40 transition-all duration-500 lg:hidden flex flex-col pt-24 px-6 ${isMobileMenuOpen ? 'block opacity-100 translate-x-0' : 'pointer-events-none opacity-0 translate-x-full'}`}>
-         
-         <div className="flex flex-col gap-4 overflow-y-auto pb-20">
-            {visibleLinks.map((link) => (
-              <Link 
-                key={link.name}
-                to={link.path} 
-                className={`text-2xl font-black uppercase tracking-widest py-4 border-b border-gray-800/50 transition-colors ${
-                  isActive(link.path) ? 'text-emerald-400' : 'text-gray-500 hover:text-white'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+      {/* Mobile Dropdown Panel */}
+      <div 
+        className={`absolute left-0 right-0 top-full mt-3 bg-gray-950/95 backdrop-blur-2xl border border-gray-800/90 rounded-[2rem] p-5 shadow-2xl z-40 transition-all duration-300 origin-top lg:hidden flex flex-col ${
+          isMobileMenuOpen 
+            ? 'opacity-100 scale-y-100 pointer-events-auto' 
+            : 'opacity-0 scale-y-95 pointer-events-none'
+        }`}
+      >
+        <div className="flex flex-col gap-1">
+          {visibleLinks.map((link) => (
+            <Link 
+              key={link.name}
+              to={link.path} 
+              className={`text-base font-bold uppercase tracking-widest py-3 px-4 rounded-xl transition-all ${
+                isActive(link.path) 
+                  ? 'text-gray-900 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-900/40'
+              }`}
+            >
+              {link.name}
+            </Link>
+          ))}
 
-            <div className="mt-8">
-              {user ? (
-                <div className="flex flex-col gap-4">
-                   <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-4 flex justify-between items-center">
-                     <div>
-                       <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">User Matrix</p>
-                       <p className="text-emerald-400 font-bold text-lg">{user.name}</p>
-                     </div>
-                     <button onClick={handleLogout} className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-bold text-sm tracking-widest uppercase transition-colors">
-                       Logout
-                     </button>
+          <div className="h-px bg-gray-800/60 my-4 mx-2"></div>
+
+          <div>
+            {user ? (
+              <div className="flex flex-col gap-4">
+                 <div className="bg-gray-900/50 border border-gray-800/60 rounded-2xl p-4 flex justify-between items-center">
+                   <div className="truncate mr-2">
+                     <p className="text-gray-500 text-[0.6rem] uppercase tracking-widest font-bold">User Account</p>
+                     <p className="text-emerald-400 font-bold text-sm truncate">{user.name}</p>
                    </div>
-                   
-                   <Link to="/pay" className="w-full text-center bg-emerald-500 text-gray-900 font-black tracking-widest uppercase py-4 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                     💳 Make Payment
-                   </Link>
-                </div>
-              ) : (
-                <Link to="/login" className="flex justify-center items-center w-full bg-emerald-500 text-gray-900 font-black text-xl tracking-widest uppercase py-5 rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                  Student Login
-                </Link>
-              )}
-            </div>
-         </div>
+                   <button onClick={handleLogout} className="bg-gray-850 hover:bg-gray-800 text-white px-4 py-2 rounded-xl font-bold text-xs tracking-widest uppercase transition-colors shrink-0">
+                     Logout
+                   </button>
+                 </div>
+                 
+                 <Link to="/pay" className="w-full text-center bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold tracking-widest uppercase py-3.5 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all flex justify-center items-center gap-2">
+                   💳 Make Payment
+                 </Link>
+              </div>
+            ) : (
+              <Link to="/login" className="flex justify-center items-center w-full bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold tracking-widest uppercase py-3.5 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all">
+                Student Login Access
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
     </nav>
   );
