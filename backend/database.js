@@ -15,6 +15,107 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
+// Auto-seed database if empty
+const autoSeedIfEmpty = () => {
+  return new Promise((resolve) => {
+    db.get('SELECT COUNT(*) as count FROM users', async (err, row) => {
+      if (err) {
+        console.error('Error checking user count:', err.message);
+        return resolve();
+      }
+      if (row && row.count > 0) {
+        console.log(`Database already has ${row.count} users. Skipping seeding.`);
+        return resolve();
+      }
+      
+      console.log('Database users table is empty. Starting auto-seeding...');
+      try {
+        const fs = require('fs');
+        const txtPath = path.join(__dirname, 'extracted_users.txt');
+        if (!fs.existsSync(txtPath)) {
+          console.warn('extracted_users.txt not found. Skipping seeding.');
+          return resolve();
+        }
+        
+        const text = fs.readFileSync(txtPath, 'utf8');
+        const lines = text.split('\n');
+        let users = [];
+        let currentUser = { name: '', matric: '', email: '' };
+
+        const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i;
+        const matricRegex = /([0-9]{2}[A-Z]{2}[O0-9]+|ACU[0-9]+)/i;
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].replace(/\u200B/g, '').trim();
+          if (!line || line.length < 3) continue;
+
+          let matched = false;
+          if (emailRegex.test(line)) {
+            currentUser.email = line.match(emailRegex)[1].toLowerCase().trim();
+            matched = true;
+          }
+          if (matricRegex.test(line)) {
+            let m = line.match(matricRegex)[1].toUpperCase().trim();
+            m = m.replace(/O/g, '0');
+            currentUser.matric = m;
+            matched = true;
+          }
+          if (line.toLowerCase().includes('name:')) {
+            currentUser.name = line.split(/name\s*[:.-]*\s*/i)[1].trim();
+            matched = true;
+          } else if (/^\d+\.\s*[A-Za-z]/.test(line)) {
+            currentUser.name = line.replace(/^\d+\.\s*/, '').trim();
+            matched = true;
+          } else if (!matched && line.split(' ').length >= 2 && !currentUser.name) {
+            if (!/\d/.test(line)) {
+              currentUser.name = line;
+            }
+          }
+
+          if (currentUser.email && currentUser.matric) {
+            if (!currentUser.name) currentUser.name = 'Student ' + currentUser.matric;
+            currentUser.name = currentUser.name.replace(/Matric.*$/i, '').trim();
+            users.push({...currentUser});
+            currentUser = { name: '', matric: '', email: '' };
+          }
+        }
+
+        console.log(`Parsed ${users.length} users. Hashing dummy password...`);
+        const dummyPasswordHash = await bcrypt.hash('password123', 10);
+
+        let insertedCount = 0;
+        let errorCount = 0;
+
+        db.serialize(() => {
+          db.run('BEGIN TRANSACTION');
+          const stmt = db.prepare('INSERT OR IGNORE INTO users (name, matric, email, password_hash) VALUES (?, ?, ?, ?)');
+          for (const user of users) {
+            stmt.run([user.name, user.matric, user.email, dummyPasswordHash], (err) => {
+              if (err) errorCount++;
+              else insertedCount++;
+            });
+          }
+          // Also insert Admin
+          stmt.run(['Admin', 'ADMIN001', 'admin@nuesa.com', dummyPasswordHash]);
+          
+          stmt.finalize();
+          db.run('COMMIT', (err) => {
+            if (err) {
+              console.error('Error committing seed transaction:', err.message);
+            } else {
+              console.log(`Auto-seeding complete. Inserted ${insertedCount} users successfully.`);
+            }
+            resolve();
+          });
+        });
+      } catch (error) {
+        console.error('Error during auto-seeding:', error);
+        resolve();
+      }
+    });
+  });
+};
+
 // Initialize database tables
 const initializeDatabase = () => {
   return new Promise((resolve, reject) => {
@@ -112,7 +213,9 @@ const initializeDatabase = () => {
         return;
       }
       console.log('Admin sessions table ready.');
-      resolve();
+      autoSeedIfEmpty()
+        .then(() => resolve())
+        .catch(() => resolve());
     });
 
     // Add matric column to payments table if it doesn't exist (for backward compatibility)
