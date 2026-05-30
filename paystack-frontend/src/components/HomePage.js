@@ -9,7 +9,7 @@ const clsx = (...classes) => classes.filter(Boolean).join(' ');
 
 const HomePage = () => {
   const { user } = useAuth();
-  
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -30,16 +30,16 @@ const HomePage = () => {
 
     // Force visible immediately if observer fails to attach
     setTimeout(() => {
-        const checkElements = document.querySelectorAll('.reveal-on-scroll');
-        checkElements.forEach(el => {
-            if(!el.classList.contains('is-visible')) {
-                // Failsafe: if an element is high up, ensure it's visible. 
-                // Only forced if it's near the top of the window
-                if(el.getBoundingClientRect().top < window.innerHeight) {
-                    el.classList.add('is-visible');
-                }
-            }
-        });
+      const checkElements = document.querySelectorAll('.reveal-on-scroll');
+      checkElements.forEach(el => {
+        if (!el.classList.contains('is-visible')) {
+          // Failsafe: if an element is high up, ensure it's visible. 
+          // Only forced if it's near the top of the window
+          if (el.getBoundingClientRect().top < window.innerHeight) {
+            el.classList.add('is-visible');
+          }
+        }
+      });
     }, 500);
 
     return () => {
@@ -61,35 +61,35 @@ const HomePage = () => {
   ];
 
   const executives = [
-    { 
-      name: 'Olawoyin Oluwafemi John', 
-      title: 'President', 
-      img: '/assets/executives/FEMI.png', 
-      desc: 'Dedicated to fostering unity, driving academic excellence, and representing NUESA ACU.' 
+    {
+      name: 'Olawoyin Oluwafemi John',
+      title: 'President',
+      img: '/assets/executives/FEMI.png',
+      desc: 'Dedicated to fostering unity, driving academic excellence, and representing NUESA ACU.'
     },
-    { 
-      name: 'Samule Adeshina', 
-      title: 'Vice President', 
-      img: '/assets/executives/Adeshina.png', 
-      desc: 'Supporting strategic leadership and bridging the gap between theory and practical engineering.' 
+    {
+      name: 'Samule Adeshina',
+      title: 'Vice President',
+      img: '/assets/executives/Adeshina.png',
+      desc: 'Supporting strategic leadership and bridging the gap between theory and practical engineering.'
     },
-    { 
-      name: 'Kamsiyochi Wogu', 
-      title: 'Financial Secretary', 
-      img: '/assets/executives/Kamsi.png', 
-      desc: 'Committed to precise financial record-keeping, budgeting, and fiscal transparency.' 
+    {
+      name: 'Kamsiyochi Wogu',
+      title: 'Financial Secretary',
+      img: '/assets/executives/Kamsi.png',
+      desc: 'Committed to precise financial record-keeping, budgeting, and fiscal transparency.'
     },
-    { 
-      name: 'Nathaniel Olakunmi', 
-      title: 'General Secretary', 
-      img: '/assets/executives/General.png', 
-      desc: 'Coordinating communication, administrative excellence, and seamless student engagement.' 
+    {
+      name: 'Nathaniel Olakunmi',
+      title: 'General Secretary',
+      img: '/assets/executives/General.png',
+      desc: 'Coordinating communication, administrative excellence, and seamless student engagement.'
     },
   ];
 
   return (
     <div className={clsx('min-h-screen', 'bg-gray-900', 'text-white', 'font-sans', 'overflow-x-hidden', 'pt-16')}>
-      
+
       {/* Dynamic Looping Background Hero Section */}
       <section className={clsx('relative', 'w-full', 'min-h-[90vh]', 'flex', 'items-center', 'pt-20', 'pb-20', 'justify-center')}>
         <div className="hero-bg-slider">
@@ -105,15 +105,13 @@ const HomePage = () => {
             <p className={clsx('text-emerald-400', 'font-semibold', 'tracking-widest', 'uppercase', 'mb-4', 'text-sm', 'md:text-base', 'drop-shadow-lg')}>
               NUESA · Ajayi Crowther University
             </p>
-            <h1 className={clsx('text-5xl', 'md:text-7xl', 'font-bold', 'mb-6', 'leading-tight', 'font-serif', 'drop-shadow-xl')}>
-              Faculty of Engineering <br />
+            <h1 className={clsx('text-4xl', 'md:text-6xl', 'font-bold', 'mb-6', 'leading-tight', 'font-serif', 'drop-shadow-xl')}>
+              Nigerian Universities Engineering Students Association
+              <br />
               <span className={clsx('text-transparent', 'bg-clip-text', 'bg-gradient-to-r', 'from-emerald-400', 'to-cyan-400')}>
-                Student Portal
+                ACU Chapter
               </span>
             </h1>
-            <p className={clsx('text-gray-300', 'text-lg', 'md:text-xl', 'mb-10', 'max-w-2xl', 'mx-auto', 'drop-shadow')}>
-              One sleek place to register, sign in, and pay your dues securely. Built for clarity — so you spend less time on administration and more on building the future.
-            </p>
             <div className={clsx('flex', 'flex-col', 'sm:flex-row', 'justify-center', 'items-center', 'gap-4')}>
               {!user ? (
                 <Link to="/login" className={clsx('premium-btn', 'bg-emerald-500', 'hover:bg-emerald-400', 'text-white', 'px-8', 'py-3', 'rounded-full', 'font-bold', 'text-lg', 'shadow-[0_0_20px_rgba(16,185,129,0.4)]')}>
@@ -129,16 +127,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Trust Strip */}
-      <section className={clsx('w-full', 'bg-gray-900/80', 'border-b', 'border-gray-800', 'backdrop-blur-sm', 'relative', 'z-20', 'py-5')}>
-        <div className={clsx('container', 'mx-auto', 'px-6', 'flex', 'flex-wrap', 'justify-center', 'items-center', 'gap-4', 'text-gray-500', 'text-sm', 'font-semibold', 'tracking-wide', 'uppercase')}>
-          <span className={clsx('reveal-on-scroll', 'delay-[100ms]')}>Paystack Integrated</span>
-          <span className={clsx('w-1.5', 'h-1.5', 'rounded-full', 'bg-gray-700', 'reveal-on-scroll')}></span>
-          <span className={clsx('reveal-on-scroll', 'delay-[200ms]')}>Encrypted Platform</span>
-          <span className={clsx('w-1.5', 'h-1.5', 'rounded-full', 'bg-gray-700', 'reveal-on-scroll')}></span>
-          <span className={clsx('reveal-on-scroll', 'delay-[300ms]')}>Official ACU Portal</span>
-        </div>
-      </section>
 
       {/* How it Works Module */}
       <section className={clsx('py-24', 'bg-gray-900')}>
@@ -189,8 +177,8 @@ const HomePage = () => {
                 </li>
               </ul>
               <Link to="/about" className={clsx('text-emerald-400', 'hover:text-white', 'font-bold', 'flex', 'items-center', 'gap-2', 'group', 'transition-colors')}>
-                Read Full History 
-                <svg className={clsx('w-5', 'h-5', 'group-hover:translate-x-2', 'transition-transform')} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                Read Full History
+                <svg className={clsx('w-5', 'h-5', 'group-hover:translate-x-2', 'transition-transform')} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               </Link>
             </div>
           </div>
@@ -249,10 +237,10 @@ const HomePage = () => {
               </div>
             ))}
           </div>
-            <div className={clsx('mt-12', 'text-center')}>
-              <Link to="/executives" className={clsx('reveal-on-scroll', 'inline-flex', 'text-emerald-400', 'hover:text-emerald-300', 'font-medium', 'text-lg', 'items-center', 'justify-center', 'gap-2', 'group')}>
-                View Past Executives Timeline
-                <svg className={clsx('w-5', 'h-5', 'group-hover:translate-x-2', 'transition-transform')} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className={clsx('mt-12', 'text-center')}>
+            <Link to="/executives" className={clsx('reveal-on-scroll', 'inline-flex', 'text-emerald-400', 'hover:text-emerald-300', 'font-medium', 'text-lg', 'items-center', 'justify-center', 'gap-2', 'group')}>
+              View Past Executives Timeline
+              <svg className={clsx('w-5', 'h-5', 'group-hover:translate-x-2', 'transition-transform')} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </Link>
@@ -265,7 +253,7 @@ const HomePage = () => {
         {/* Abstract background blobs */}
         <div className={clsx('absolute', 'top-0', 'left-0', 'w-96', 'h-96', 'bg-emerald-600/10', 'rounded-full', 'blur-3xl', '-translate-x-1/2', '-translate-y-1/2', 'pointer-events-none')}></div>
         <div className={clsx('absolute', 'bottom-0', 'right-0', 'w-96', 'h-96', 'bg-cyan-600/10', 'rounded-full', 'blur-3xl', 'translate-x-1/3', 'translate-y-1/3', 'pointer-events-none')}></div>
-        
+
         <div className={clsx('container', 'mx-auto', 'px-6', 'max-w-6xl', 'relative', 'z-10')}>
           <div className={clsx('text-center', 'mb-16')}>
             <p className={clsx('text-emerald-500', 'font-bold', 'tracking-widest', 'uppercase', 'text-sm', 'mb-2', 'reveal-on-scroll')}>Student Voices</p>
@@ -281,7 +269,7 @@ const HomePage = () => {
                   <svg className={clsx('w-10', 'h-10', 'text-emerald-500/20', 'absolute', 'top-6', 'right-6')} fill="currentColor" viewBox="0 0 24 24">
                     <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                   </svg>
-                  
+
                   <div className={clsx('flex', 'text-yellow-500', 'mb-4')}>
                     {[...Array(comment.rating)].map((_, idx) => (
                       <svg key={idx} className={clsx('w-5', 'h-5')} fill="currentColor" viewBox="0 0 20 20">
