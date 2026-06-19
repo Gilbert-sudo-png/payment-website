@@ -18,10 +18,13 @@ const {
   deleteSession,
   getAdminSession,
   deleteAdminSession,
+  getAdminByEmail,
+  createAdminSession,
   setVotingCode,
   verifyVotingCode,
   castVote,
   getVotingResults,
+  getVoterCount,
   getSystemSetting,
   updateSystemSetting
 } = require('./database');
@@ -359,6 +362,42 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
   });
 });
 
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const admin = await getAdminByEmail(email.trim().toLowerCase());
+    if (!admin) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const validPassword = await verifyPassword(password, admin.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const sessionId = await createAdminSession(admin.id);
+    res.cookie('admin_session_id', sessionId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
+    res.json({
+      success: true,
+      message: 'Admin login successful',
+      admin: { id: admin.id, name: admin.name, email: admin.email }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ error: 'Admin login failed' });
+  }
+});
+
 // Get all payments endpoint (admin only)
 app.get('/api/payments', async (req, res) => {
   try {
@@ -497,22 +536,55 @@ app.post('/api/vote/generate-code', requireAuth, async (req, res) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
-
-    res.json({ success: true, message: 'Code sent to your email successfully.' });
+    try {
+      await transporter.sendMail(mailOptions);
+      res.json({ success: true, message: 'Code sent to your email successfully.' });
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+      console.warn('--- TEST ENVIRONMENT FALLBACK ---');
+      console.warn('Email authorization code generated but failed to send.');
+      console.warn('Voter Name:', req.user.name);
+      console.warn('Voter Email:', req.user.email);
+      console.warn('Generated OTP Code:', code);
+      console.warn('--------------------------------');
+      res.json({ 
+        success: true, 
+        message: 'OTP generated. Check server console/logs for code since email delivery failed.' 
+      });
+    }
   } catch (error) {
     console.error('Error generating code:', error);
-    res.status(500).json({ error: 'Failed to generate code or send email. Please check server email credentials.' });
+    res.status(500).json({ error: 'Failed to generate code. Please contact admin.' });
+  }
+});
+
+// Verify OTP Code
+app.post('/api/vote/verify-otp', requireAuth, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ error: 'Code is required.' });
+    }
+
+    const verification = await verifyVotingCode(req.user.id, code.trim());
+    if (!verification.valid) {
+      return res.status(400).json({ error: verification.message });
+    }
+
+    res.json({ success: true, message: 'OTP code verified successfully.' });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({ error: 'Failed to verify OTP.' });
   }
 });
 
 // Submit Vote
 app.post('/api/vote/submit', requireAuth, async (req, res) => {
   try {
-    const { code, candidateId } = req.body;
+    const { code, candidateIds } = req.body;
     
-    if (!code || !candidateId) {
-      return res.status(400).json({ error: 'Code and candidate ID are required.' });
+    if (!code || !candidateIds || !Array.isArray(candidateIds) || candidateIds.length === 0) {
+      return res.status(400).json({ error: 'Code and candidate IDs array are required.' });
     }
 
     // Verify code
@@ -522,12 +594,12 @@ app.post('/api/vote/submit', requireAuth, async (req, res) => {
     }
 
     // Cast vote
-    await castVote(req.user.id, candidateId);
+    await castVote(req.user.id, candidateIds);
 
-    res.json({ success: true, message: 'Your vote has been successfully cast!' });
+    res.json({ success: true, message: 'Your votes have been successfully cast!' });
   } catch (error) {
     console.error('Voting error:', error);
-    res.status(500).json({ error: error.message || 'Error occurred while saving vote.' });
+    res.status(500).json({ error: error.message || 'Error occurred while saving votes.' });
   }
 });
 
@@ -536,12 +608,12 @@ app.get('/api/admin/votes', requireAdminAuth, async (req, res) => {
   try {
     const results = await getVotingResults();
     const releasedStr = await getSystemSetting('results_released') || 'false';
-    const totalVotes = results.reduce((acc, curr) => acc + curr.vote_count, 0);
+    const voterCount = await getVoterCount();
 
     res.json({
       success: true,
       results_released: releasedStr === 'true',
-      total_votes: totalVotes,
+      total_votes: voterCount,
       results
     });
   } catch (error) {

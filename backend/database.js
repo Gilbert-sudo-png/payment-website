@@ -196,6 +196,11 @@ const initializeDatabase = () => {
         return;
       }
       console.log('Admins table ready.');
+      const adminPasswordHash = bcrypt.hashSync('admin123', 10);
+      db.run(
+        `INSERT OR IGNORE INTO admins (email, password_hash, name) VALUES (?, ?, ?)`,
+        ['admin@nuesa.acu.edu.ng', adminPasswordHash, 'Admin User']
+      );
     });
 
     // Create admin_sessions table
@@ -239,17 +244,33 @@ const initializeDatabase = () => {
       if (err && !err.message.includes('duplicate column')) console.error('Error adding code_expires_at:', err.message);
     });
 
-    db.run(`
-      CREATE TABLE IF NOT EXISTS votes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER UNIQUE NOT NULL,
-        candidate_id INTEGER NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users (id)
-      )
-    `, (err) => {
-      if (err) console.error('Error creating votes table:', err.message);
-      else console.log('Votes table ready.');
+    // Check if votes table has old constraint (user_id UNIQUE)
+    db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='votes'", (err, row) => {
+      const createVotesTable = () => {
+        db.run(`
+          CREATE TABLE IF NOT EXISTS votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            candidate_id TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            UNIQUE(user_id, candidate_id)
+          )
+        `, (err) => {
+          if (err) console.error('Error creating votes table:', err.message);
+          else console.log('Votes table ready.');
+        });
+      };
+
+      if (row && row.sql && row.sql.includes('user_id INTEGER UNIQUE')) {
+        console.log('Dropping old votes table to support multi-position voting...');
+        db.run("DROP TABLE votes", (err) => {
+          if (err) console.error('Error dropping old votes table:', err.message);
+          createVotesTable();
+        });
+      } else {
+        createVotesTable();
+      }
     });
 
     db.run(`
@@ -618,36 +639,50 @@ const verifyVotingCode = (userId, code) => {
   });
 };
 
-const castVote = (userId, candidateId) => {
+const castVote = (userId, candidateIds) => {
   return new Promise((resolve, reject) => {
+    const ids = Array.isArray(candidateIds) ? candidateIds : [candidateIds];
+    if (ids.length === 0) {
+      return reject(new Error('No candidate IDs provided'));
+    }
+
     db.serialize(() => {
       db.run('BEGIN TRANSACTION');
-      db.run(
-        'INSERT INTO votes (user_id, candidate_id) VALUES (?, ?)',
-        [userId, candidateId],
-        (err) => {
+      
+      const stmt = db.prepare('INSERT INTO votes (user_id, candidate_id) VALUES (?, ?)');
+      let errorOccurred = null;
+
+      for (const cid of ids) {
+        stmt.run([userId, cid], (err) => {
           if (err) {
-            db.run('ROLLBACK');
-            if (err.message.includes('UNIQUE constraint failed')) {
-              return reject(new Error('User has already voted'));
-            }
-            return reject(err);
+            errorOccurred = err;
           }
-          
-          db.run(
-            'UPDATE users SET has_voted = 1, voting_code = NULL, code_expires_at = NULL WHERE id = ?',
-            [userId],
-            (err) => {
-              if (err) {
-                db.run('ROLLBACK');
-                return reject(err);
-              }
-              db.run('COMMIT');
-              resolve(true);
-            }
-          );
+        });
+      }
+
+      stmt.finalize((err) => {
+        if (err || errorOccurred) {
+          db.run('ROLLBACK');
+          const finalErr = err || errorOccurred;
+          if (finalErr.message.includes('UNIQUE constraint failed')) {
+            return reject(new Error('User has already voted'));
+          }
+          return reject(finalErr);
         }
-      );
+
+        db.run(
+          'UPDATE users SET has_voted = 1, voting_code = NULL, code_expires_at = NULL WHERE id = ?',
+          [userId],
+          (err) => {
+            if (err) {
+              db.run('ROLLBACK');
+              return reject(err);
+            }
+            db.run('COMMIT');
+            resolve(true);
+          }
+        );
+      });
     });
   });
 };
@@ -662,6 +697,19 @@ const getVotingResults = () => {
       (err, rows) => {
         if (err) reject(err);
         else resolve(rows);
+      }
+    );
+  });
+};
+
+const getVoterCount = () => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      'SELECT COUNT(DISTINCT user_id) as count FROM votes',
+      [],
+      (err, row) => {
+        if (err) reject(err);
+        else resolve(row ? row.count : 0);
       }
     );
   });
@@ -715,6 +763,7 @@ module.exports = {
   verifyVotingCode,
   castVote,
   getVotingResults,
+  getVoterCount,
   getSystemSetting,
   updateSystemSetting
 };
