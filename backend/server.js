@@ -644,6 +644,78 @@ app.post('/api/admin/votes/release', requireAdminAuth, async (req, res) => {
   }
 });
 
+// Admin Endpoint: Reseed Voters from new_voters.json (Admin only)
+app.post('/api/admin/reseed', requireAdminAuth, async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const sqlite3 = require('sqlite3').verbose();
+    const bcrypt = require('bcryptjs');
+
+    const jsonPath = path.join(__dirname, 'new_voters.json');
+    if (!fs.existsSync(jsonPath)) {
+      return res.status(400).json({ error: 'new_voters.json file not found on server.' });
+    }
+
+    const users = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    console.log(`Manual reseed: Loaded ${users.length} users from new_voters.json`);
+
+    const db = new sqlite3.Database(path.join(__dirname, 'payments.db'));
+    const run = (sql, params = []) =>
+      new Promise((res, rej) =>
+        db.run(sql, params, function (err) { err ? rej(err) : res(this); })
+      );
+
+    // 1. Clear old voter records (keeping admin accounts)
+    console.log('Manual reseed: Removing old voter records...');
+    await run(`DELETE FROM sessions`);
+    await run(`DELETE FROM votes`);
+    await run(`DELETE FROM users`);
+
+    // 2. Hash default password
+    const DEFAULT_PASSWORD = 'password123';
+    const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+
+    // 3. Insert new users
+    let inserted = 0;
+    let skipped = 0;
+    
+    await run('BEGIN TRANSACTION');
+    try {
+      for (const u of users) {
+        try {
+          await run(
+            `INSERT INTO users (name, matric, email, password_hash, has_voted) VALUES (?, ?, ?, ?, 0)`,
+            [u.name, u.matric, u.email, passwordHash]
+          );
+          inserted++;
+        } catch (err) {
+          if (err.message.includes('UNIQUE')) {
+            skipped++;
+          } else {
+            console.error(`  Error inserting ${u.name}:`, err.message);
+            skipped++;
+          }
+        }
+      }
+      await run('COMMIT');
+    } catch (txError) {
+      await run('ROLLBACK');
+      throw txError;
+    }
+
+    db.close();
+
+    res.json({
+      success: true,
+      message: `Database successfully reseeded! Inserted: ${inserted}, Skipped: ${skipped}.`
+    });
+  } catch (error) {
+    console.error('Manual reseed error:', error);
+    res.status(500).json({ error: 'Reseed failed: ' + error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
