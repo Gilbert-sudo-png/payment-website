@@ -406,58 +406,6 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Secure remote database re-seeding endpoint (for users on Render free plans)
-app.get('/api/admin/reseed', async (req, res) => {
-  try {
-    const { secret } = req.query;
-    if (secret !== 'NuesaAdminReseed2026') {
-      return res.status(403).json({ error: 'Forbidden. Invalid secret.' });
-    }
-    
-    console.log('Manual re-seed requested. Clearing old voter records...');
-    
-    const sqlite3 = require('sqlite3').verbose();
-    const path = require('path');
-    const db = new sqlite3.Database(path.join(__dirname, 'payments.db'));
-    const run = (sql, params = []) =>
-      new Promise((resolvePromise, rejectPromise) =>
-        db.run(sql, params, function (err) { err ? rejectPromise(err) : resolvePromise(this); })
-      );
-      
-    // Clear voters and sessions
-    await run("DELETE FROM sessions");
-    await run("DELETE FROM votes");
-    await run("DELETE FROM users WHERE matric NOT LIKE 'ADMIN%'");
-    
-    // Seed
-    const fs = require('fs');
-    const jsonPath = path.join(__dirname, 'new_voters.json');
-    if (!fs.existsSync(jsonPath)) {
-      db.close();
-      return res.status(400).json({ error: 'new_voters.json not found on server' });
-    }
-    
-    const users = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-    const bcrypt = require('bcryptjs');
-    const dummyPasswordHash = await bcrypt.hash('password123', 10);
-    
-    let inserted = 0;
-    for (const user of users) {
-      await run(
-        'INSERT OR IGNORE INTO users (name, matric, email, password_hash) VALUES (?, ?, ?, ?)',
-        [user.name, user.matric, user.email, dummyPasswordHash]
-      );
-      inserted++;
-    }
-    
-    db.close();
-    res.json({ success: true, message: `Successfully re-seeded ${inserted} users.` });
-  } catch (error) {
-    console.error('Manual reseed error:', error);
-    res.status(500).json({ error: 'Reseed failed: ' + error.message });
-  }
-});
-
 // Get all payments endpoint (admin only)
 app.get('/api/payments', async (req, res) => {
   try {
