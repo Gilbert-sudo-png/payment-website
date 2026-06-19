@@ -38,7 +38,7 @@ const Navbar = () => {
   ];
 
   const protectedLinks = [
-    // { name: 'Voting', path: '/voting' },
+    { name: 'Voting', path: '/voting' },
   ];
 
   const visibleLinks = user ? [...publicLinks, ...protectedLinks] : publicLinks;

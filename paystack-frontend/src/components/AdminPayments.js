@@ -25,12 +25,39 @@ const userHeaders = [
   { key: 'created_at', label: 'Registered At' }
 ];
 
-// Embedded candidate mapper to convert IDs back to names for Admin context
-const candidateMap = {
-  1: { name: 'Michael Osei', position: 'President' },
-  2: { name: 'Sarah Ade', position: 'President' },
-  3: { name: 'Daniel Chuks', position: 'Vice President' }
-};
+const POSITIONS = [
+  { id: 'president', name: 'President', isContested: true },
+  { id: 'vice_president', name: 'Vice President', isContested: false },
+  { id: 'general_secretary', name: 'General Secretary', isContested: true },
+  { id: 'assistant_general_secretary', name: 'Assistant General Secretary', isContested: false },
+  { id: 'treasurer', name: 'Treasurer', isContested: false },
+  { id: 'financial_secretary', name: 'Financial Secretary', isContested: true },
+  { id: 'social_director', name: 'Social Director', isContested: false },
+  { id: 'assistant_social_director', name: 'Assistant Social Director', isContested: false },
+  { id: 'welfare_director', name: 'Welfare Director', isContested: false },
+  { id: 'public_relation_officer', name: 'Public Relation Officer', isContested: false },
+  { id: 'sports_director', name: 'Sports Director', isContested: true },
+  { id: 'academic_officer', name: 'Academic Officer', isContested: false }
+];
+
+const CANDIDATES = [
+  { id: 'pres_mbachu', name: 'Mbachu Princess Chidimma', position: 'president', img: '/candidates/mbachu-president.jpg' },
+  { id: 'pres_petros', name: 'Petros-Mokelu Light', position: 'president', img: '/candidates/petros-president.jpg' },
+  { id: 'vp_alabi', name: 'Alabi Emmanuel Akinbobola', position: 'vice_president', img: '/candidates/alabi-vp.jpg' },
+  { id: 'gensec_olagunju', name: 'Olagunju Oladotun', position: 'general_secretary', img: '/candidates/olagunju-gensec.jpg' },
+  { id: 'gensec_oloye', name: 'Oloye Samuel', position: 'general_secretary', img: '/candidates/oloye-gensec.jpg' },
+  { id: 'asg_omobolaji', name: 'Omobolaji Praise', position: 'assistant_general_secretary', img: '/candidates/omobolaji-asg.jpg' },
+  { id: 'treas_ayo', name: 'Ayo-Ajiboye Jeremiah Oluwaseyi', position: 'treasurer', img: '/candidates/ayo-treasurer.jpg' },
+  { id: 'finsec_victor', name: 'Victor Oyedele', position: 'financial_secretary', img: '/candidates/victor-finsec.jpg' },
+  { id: 'finsec_eludipo', name: 'Eludipo Gbenga', position: 'financial_secretary', img: '/candidates/eludipo-finsec.jpg' },
+  { id: 'soc_olugbode', name: 'Olugbode Enoch Adedeji', position: 'social_director', img: '/candidates/olugbode-social.jpg' },
+  { id: 'asoc_okwueze', name: 'Okwueze', position: 'assistant_social_director', img: '/candidates/okwueze-asoc.jpg' },
+  { id: 'wel_gyang', name: 'Gyang Simi Tok', position: 'welfare_director', img: '/candidates/gyang-welfare.jpg' },
+  { id: 'pro_ogbonna', name: 'Ogbonna Ogechi Joy', position: 'public_relation_officer', img: '/candidates/ogbonna-pro.jpg' },
+  { id: 'sports_obi', name: 'Obi Emmanuel Chuka', position: 'sports_director', img: '/candidates/obi-sports.jpg' },
+  { id: 'sports_ibe', name: 'Ibe Daniel', position: 'sports_director', img: '/candidates/ibe-sports.jpg' },
+  { id: 'acad_kalu', name: 'Kalu Onyinyechi Offia', position: 'academic_officer', img: '/candidates/kalu-academic.jpg' }
+];
 
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
@@ -251,59 +278,143 @@ const AdminPayments = () => {
   const renderVotingResults = () => {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        <div className="lg:col-span-2 overflow-x-auto bg-gray-800 rounded-xl border border-gray-700 shadow-xl h-fit">
-          <div className="p-6 border-b border-gray-700 font-bold tracking-widest uppercase text-sm text-gray-400 flex justify-between">
-            <span>Election Standings</span>
-            <span>Total Checked Votes: {totalVotes}</span>
-          </div>
-          <table className="w-full text-left text-sm text-gray-300">
-            <thead className="text-xs text-gray-400 uppercase bg-gray-900 border-b border-gray-700">
-              <tr>
-                <th className="px-6 py-4 font-bold tracking-wider">Candidate</th>
-                <th className="px-6 py-4 font-bold tracking-wider">Position</th>
-                <th className="px-6 py-4 font-bold tracking-wider">Votes</th>
-                <th className="px-6 py-4 font-bold tracking-wider">% Share</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 shadow-xl p-6">
+            <h2 className="text-xl font-bold font-serif text-cyan-400 mb-6 tracking-wider">Live Election Standings</h2>
+            <div className="space-y-6">
               {loading ? (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">Calculating results...</td></tr>
+                <div className="text-center py-12 text-gray-500">Calculating results...</div>
               ) : voteResults.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">No votes cast yet.</td></tr>
+                <div className="text-center py-12 text-gray-500 font-medium">No votes cast yet. Results will update automatically.</div>
               ) : (
-                Object.keys(candidateMap).map((id, idx) => {
-                  const candidateInfo = candidateMap[id];
-                  const resultRecord = voteResults.find(r => r.candidate_id === parseInt(id));
-                  const votes = resultRecord ? resultRecord.vote_count : 0;
-                  const percent = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(1) : 0;
+                POSITIONS.map((pos) => {
+                  const posCandidates = CANDIDATES.filter(c => c.position === pos.id);
                   
-                  return (
-                    <tr key={id} className={`border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors ${idx % 2 === 0 ? 'bg-gray-800' : 'bg-gray-800/80'}`}>
-                      <td className="px-6 py-5 font-bold text-white text-base">{candidateInfo.name}</td>
-                      <td className="px-6 py-5 text-gray-400">{candidateInfo.position}</td>
-                      <td className="px-6 py-5 text-emerald-400 font-bold">{votes}</td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3 w-full">
-                          <span className="w-12 text-right">{percent}%</span>
-                          <div className="w-32 bg-gray-700 h-2 rounded-full overflow-hidden shrink-0">
-                            <div className="bg-emerald-500 h-full" style={{ width: `${percent}%` }}></div>
+                  if (pos.isContested) {
+                    const candidateVotes = posCandidates.map(c => {
+                      const record = voteResults.find(r => r.candidate_id === c.id);
+                      return {
+                        ...c,
+                        votes: record ? record.vote_count : 0
+                      };
+                    });
+                    
+                    const totalPosVotes = candidateVotes.reduce((sum, c) => sum + c.votes, 0);
+                    const sortedCandidates = [...candidateVotes].sort((a, b) => b.votes - a.votes);
+                    const leadingVotes = sortedCandidates[0]?.votes || 0;
+                    
+                    return (
+                      <div key={pos.id} className="bg-gray-900/40 border border-gray-700 p-5 rounded-2xl space-y-4">
+                        <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                          <h3 className="text-white font-bold text-base tracking-wide">{pos.name}</h3>
+                          <span className="text-xs text-gray-400 font-mono">Total votes: {totalPosVotes}</span>
+                        </div>
+                        <div className="space-y-4">
+                          {candidateVotes.map((c) => {
+                            const percent = totalPosVotes > 0 ? ((c.votes / totalPosVotes) * 100).toFixed(1) : 0;
+                            const isLeading = c.votes > 0 && c.votes === leadingVotes;
+                            return (
+                              <div key={c.id} className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-800 bg-gray-950 shrink-0">
+                                  <img 
+                                    src={c.img} 
+                                    alt={c.name} 
+                                    className="w-full h-full object-contain" 
+                                    onError={(e) => { e.target.src = "https://via.placeholder.com/80?text=No+Photo"; }} 
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-baseline mb-1">
+                                    <h4 className="text-sm font-semibold text-white truncate flex items-center gap-2">
+                                      {c.name}
+                                      {isLeading && <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full">Leading</span>}
+                                    </h4>
+                                    <span className="text-sm font-mono font-bold text-emerald-400">{c.votes} votes ({percent}%)</span>
+                                  </div>
+                                  <div className="w-full bg-gray-950 h-2.5 rounded-full overflow-hidden border border-gray-850">
+                                    <div 
+                                      className={`h-full transition-all duration-500 ${isLeading ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-gray-700'}`} 
+                                      style={{ width: `${percent}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    const candidate = posCandidates[0];
+                    if (!candidate) return null;
+                    
+                    const yesRecord = voteResults.find(r => r.candidate_id === `${candidate.id}_yes`);
+                    const noRecord = voteResults.find(r => r.candidate_id === `${candidate.id}_no`);
+                    
+                    const yesVotes = yesRecord ? yesRecord.vote_count : 0;
+                    const noVotes = noRecord ? noRecord.vote_count : 0;
+                    const totalPosVotes = yesVotes + noVotes;
+                    
+                    const yesPercent = totalPosVotes > 0 ? ((yesVotes / totalPosVotes) * 100).toFixed(1) : 0;
+                    const noPercent = totalPosVotes > 0 ? ((noVotes / totalPosVotes) * 100).toFixed(1) : 0;
+                    
+                    return (
+                      <div key={pos.id} className="bg-gray-900/40 border border-gray-700 p-5 rounded-2xl space-y-4">
+                        <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                          <div>
+                            <h3 className="text-white font-bold text-base tracking-wide">{pos.name}</h3>
+                            <p className="text-xs text-gray-500">Uncontested</p>
+                          </div>
+                          <span className="text-xs text-gray-400 font-mono">Total votes: {totalPosVotes}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-800 bg-gray-950 shrink-0">
+                            <img 
+                              src={candidate.img} 
+                              alt={candidate.name} 
+                              className="w-full h-full object-contain" 
+                              onError={(e) => { e.target.src = "https://via.placeholder.com/80?text=No+Photo"; }} 
+                            />
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <h4 className="text-sm font-semibold text-white">{candidate.name}</h4>
+                            
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-xs font-mono">
+                                <span className="text-emerald-400 font-bold">YES</span>
+                                <span className="text-gray-400">{yesVotes} votes ({yesPercent}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-950 h-2 rounded-full overflow-hidden border border-gray-850">
+                                <div className="bg-emerald-500 h-full" style={{ width: `${yesPercent}%` }}></div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-xs font-mono">
+                                <span className="text-red-400 font-bold">NO</span>
+                                <span className="text-gray-400">{noVotes} votes ({noPercent}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-950 h-2 rounded-full overflow-hidden border border-gray-850">
+                                <div className="bg-red-500 h-full" style={{ width: `${noPercent}%` }}></div>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </td>
-                    </tr>
-                  );
+                      </div>
+                    );
+                  }
                 })
               )}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-gray-800 border bg-gradient-to-br from-indigo-900/40 to-gray-800 border-indigo-800/50 p-6 rounded-2xl flex flex-col justify-between">
+          <div className="bg-gray-800 border bg-gradient-to-br from-indigo-900/40 to-gray-800 border-indigo-800/50 p-6 rounded-2xl flex flex-col justify-between shadow-xl">
             <h3 className="text-white font-bold text-xl mb-2">Publish Results</h3>
             <p className="text-gray-400 text-sm mb-6 flex-1">
               Currently, results are <strong className={resultsReleased ? 'text-emerald-400' : 'text-yellow-400'}>{resultsReleased ? 'PUBLIC' : 'HIDDEN'}</strong> from the student portal. 
-              Only Admin can see the live results above.
+              Only Admin can see the live results.
             </p>
             <button 
               onClick={handleToggleRelease}
@@ -319,10 +430,10 @@ const AdminPayments = () => {
             </button>
           </div>
           
-          <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl">
+          <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-xl">
               <p className="text-gray-400/80 text-sm font-bold uppercase tracking-widest mb-1">Voter Turnout</p>
               <div className="text-4xl font-black text-white flex items-baseline gap-2">
-                {totalVotes} <span className="text-lg font-medium text-gray-500 tracking-normal lowercase">voted</span>
+                {totalVotes} <span className="text-lg font-medium text-gray-500 tracking-normal lowercase">voters</span>
               </div>
           </div>
         </div>

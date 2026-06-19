@@ -10,6 +10,10 @@ export const useAdminAuth = () => {
   return context;
 };
 
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000'
+  : (process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000');
+
 // Admin credentials - you can move these to environment variables for production
 const ADMIN_EMAIL = process.env.REACT_APP_ADMIN_EMAIL || 'admin@nuesa.acu.edu.ng';
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD || 'admin123';
@@ -45,7 +49,30 @@ export const AdminAuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // Simple authentication - check against configured credentials
+      // First call backend to set authentication cookies
+      const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
+      });
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const adminData = {
+          email: data.admin.email,
+          name: data.admin.name,
+          timestamp: Date.now()
+        };
+        setAdmin(adminData);
+        localStorage.setItem('adminAuth', JSON.stringify(adminData));
+        return { success: true };
+      } else {
+        return { success: false, error: data.error || 'Invalid email or password' };
+      }
+    } catch (error) {
+      console.error('Admin backend login failed, falling back to local auth:', error);
+      // Fallback to local authentication for robustness
       if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
         const adminData = {
           email: ADMIN_EMAIL,
@@ -57,8 +84,6 @@ export const AdminAuthProvider = ({ children }) => {
       } else {
         return { success: false, error: 'Invalid email or password' };
       }
-    } catch (error) {
-      return { success: false, error: 'Login failed. Please try again.' };
     }
   };
 

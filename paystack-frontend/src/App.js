@@ -96,7 +96,14 @@ function App() {
               <Route path="/executives" element={<ExecutivesPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/contact" element={<ContactPage />} />
-              <Route path="/voting" element={<VotingPage />} />
+              <Route 
+                path="/voting" 
+                element={
+                  <ProtectedRoute>
+                    <VotingPage />
+                  </ProtectedRoute>
+                } 
+              />
               <Route 
                 path="/pay" 
                 element={
