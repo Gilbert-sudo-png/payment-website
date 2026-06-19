@@ -27,7 +27,7 @@ const autoSeedIfEmpty = () => {
         console.log(`Database already has ${row.count} users. Skipping seeding.`);
         return resolve();
       }
-      
+
       console.log('Database users table is empty. Starting auto-seeding...');
       try {
         const fs = require('fs');
@@ -36,7 +36,7 @@ const autoSeedIfEmpty = () => {
           console.warn('new_voters.json not found. Skipping seeding.');
           return resolve();
         }
-        
+
         const users = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
 
         console.log(`Parsed ${users.length} users. Hashing dummy password...`);
@@ -49,7 +49,7 @@ const autoSeedIfEmpty = () => {
           for (const user of users) {
             stmt.run([user.name, user.matric, user.email, dummyPasswordHash]);
           }
-          
+
           // Seed 4 admin accounts
           const admins = [
             ['President', 'ADMIN001', 'president@nuesa.com', adminPasswordHash],
@@ -57,11 +57,11 @@ const autoSeedIfEmpty = () => {
             ['Financial Secretary', 'ADMIN003', 'finsec@nuesa.com', adminPasswordHash],
             ['PRO', 'ADMIN004', 'pro@nuesa.com', adminPasswordHash]
           ];
-          
+
           for (const admin of admins) {
             stmt.run(admin);
           }
-          
+
           stmt.finalize();
           db.run('COMMIT', (err) => {
             if (err) {
@@ -165,10 +165,10 @@ const initializeDatabase = () => {
       console.log('Admins table ready.');
       // Seed all 4 admin accounts on first boot
       const adminAccounts = [
-        { name: 'Gilbert Simon-Emieje',  email: 'gilbertemieje@gmail.com',   password: 'Nuesa@Admin1' },
-        { name: 'NUESA Admin 2',         email: 'admin2@nuesa.acu.edu.ng',   password: 'Nuesa@Admin2' },
-        { name: 'NUESA Admin 3',         email: 'admin3@nuesa.acu.edu.ng',   password: 'Nuesa@Admin3' },
-        { name: 'NUESA Admin 4',         email: 'admin4@nuesa.acu.edu.ng',   password: 'Nuesa@Admin4' },
+        { name: 'Gilbert Simon-Emieje', email: 'gilbertemieje@gmail.com', password: 'Nuesa@Admin1' },
+        { name: 'NUESA Admin 2', email: 'admin2@nuesa.acu.edu.ng', password: 'Nuesa@Admin2' },
+        { name: 'NUESA Admin 3', email: 'admin3@nuesa.acu.edu.ng', password: 'Nuesa@Admin3' },
+        { name: 'NUESA Admin 4', email: 'admin4@nuesa.acu.edu.ng', password: 'Nuesa@Admin4' },
       ];
       for (const a of adminAccounts) {
         const hash = bcrypt.hashSync(a.password, 10);
@@ -287,7 +287,7 @@ const savePayment = (paymentData) => {
         transaction_date, paystack_response
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [reference, amount, currency, status, name, email, matric, reason, transaction_date, paystack_response],
-      function(err) {
+      function (err) {
         if (err) {
           console.error('Error saving payment:', err.message);
           reject(err);
@@ -337,17 +337,17 @@ const getAllPayments = () => {
 // User functions
 const createUser = async (userData) => {
   const { name, matric, email, password } = userData;
-  
+
   return new Promise(async (resolve, reject) => {
     try {
       // Hash password
       const saltRounds = 10;
       const password_hash = await bcrypt.hash(password, saltRounds);
-      
+
       db.run(
         `INSERT INTO users (name, matric, email, password_hash) VALUES (?, ?, ?, ?)`,
         [name, matric, email, password_hash],
-        function(err) {
+        function (err) {
           if (err) {
             console.error('Error creating user:', err.message);
             if (err.message.includes('UNIQUE constraint failed')) {
@@ -426,11 +426,11 @@ const verifyPassword = async (plainPassword, hashedPassword) => {
 const createSession = (userId) => {
   return new Promise((resolve, reject) => {
     const sessionId = uuidv4();
-    
+
     db.run(
       'INSERT INTO sessions (id, user_id) VALUES (?, ?)',
       [sessionId, userId],
-      function(err) {
+      function (err) {
         if (err) {
           console.error('Error creating session:', err.message);
           reject(err);
@@ -467,7 +467,7 @@ const deleteSession = (sessionId) => {
     db.run(
       'DELETE FROM sessions WHERE id = ?',
       [sessionId],
-      function(err) {
+      function (err) {
         if (err) {
           console.error('Error deleting session:', err.message);
           reject(err);
@@ -484,11 +484,11 @@ const cleanupOldSessions = (daysOld = 30) => {
   return new Promise((resolve, reject) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-    
+
     db.run(
       'DELETE FROM sessions WHERE created_at < ?',
       [cutoffDate.toISOString()],
-      function(err) {
+      function (err) {
         if (err) {
           console.error('Error cleaning up sessions:', err.message);
           reject(err);
@@ -522,11 +522,11 @@ const getAdminByEmail = (email) => {
 const createAdminSession = (adminId) => {
   return new Promise((resolve, reject) => {
     const sessionId = uuidv4();
-    
+
     db.run(
       'INSERT INTO admin_sessions (id, admin_id) VALUES (?, ?)',
       [sessionId, adminId],
-      function(err) {
+      function (err) {
         if (err) {
           console.error('Error creating admin session:', err.message);
           reject(err);
@@ -563,7 +563,7 @@ const deleteAdminSession = (sessionId) => {
     db.run(
       'DELETE FROM admin_sessions WHERE id = ?',
       [sessionId],
-      function(err) {
+      function (err) {
         if (err) {
           console.error('Error deleting admin session:', err.message);
           reject(err);
@@ -583,7 +583,7 @@ const setVotingCode = (userId, code) => {
     db.run(
       'UPDATE users SET voting_code = ?, code_expires_at = ? WHERE id = ?',
       [code, expiresAt, userId],
-      function(err) {
+      function (err) {
         if (err) reject(err);
         else resolve(true);
       }
@@ -600,15 +600,15 @@ const verifyVotingCode = (userId, code) => {
         if (err) return reject(err);
         if (!user) return resolve({ valid: false, message: 'User not found' });
         if (user.has_voted) return resolve({ valid: false, message: 'User has already voted' });
-        
+
         if (user.voting_code !== code) {
           return resolve({ valid: false, message: 'Invalid code' });
         }
-        
+
         if (new Date() > new Date(user.code_expires_at)) {
           return resolve({ valid: false, message: 'Code has expired' });
         }
-        
+
         resolve({ valid: true });
       }
     );
@@ -624,7 +624,7 @@ const castVote = (userId, candidateIds) => {
 
     db.serialize(() => {
       db.run('BEGIN TRANSACTION');
-      
+
       const stmt = db.prepare('INSERT INTO votes (user_id, candidate_id) VALUES (?, ?)');
       let errorOccurred = null;
 
@@ -707,7 +707,7 @@ const getSystemSetting = (key) => {
 const getNonVoters = () => {
   return new Promise((resolve, reject) => {
     db.all(
-      `SELECT name, matric, email FROM users WHERE (has_voted = 0 OR has_voted IS NULL) AND matric != 'ADMIN001' ORDER BY name`,
+      `SELECT name, matric, email FROM users WHERE (has_voted = 0 OR has_voted IS NULL) AND matric NOT LIKE 'ADMIN%' ORDER BY name`,
       [],
       (err, rows) => {
         if (err) reject(err);
@@ -722,7 +722,7 @@ const updateSystemSetting = (key, value) => {
     db.run(
       'INSERT OR REPLACE INTO system_settings (setting_key, setting_value) VALUES (?, ?)',
       [key, value],
-      function(err) {
+      function (err) {
         if (err) reject(err);
         else resolve(true);
       }

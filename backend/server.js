@@ -630,6 +630,21 @@ app.get('/api/admin/votes', requireAdminAuth, async (req, res) => {
   }
 });
 
+// Admin Endpoint: Get Non-Voters List
+app.get('/api/admin/non-voters', requireAdminAuth, async (req, res) => {
+  try {
+    const nonVoters = await getNonVoters();
+    res.json({
+      success: true,
+      count: nonVoters.length,
+      data: nonVoters
+    });
+  } catch (error) {
+    console.error('Error fetching non-voters:', error);
+    res.status(500).json({ error: 'Failed to fetch non-voters list.' });
+  }
+});
+
 // Admin Endpoint: Toggle Result Visibility
 app.post('/api/admin/votes/release', requireAdminAuth, async (req, res) => {
   try {
@@ -642,16 +657,6 @@ app.post('/api/admin/votes/release', requireAdminAuth, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update system setting.' });
-  }
-});
-
-// Admin Endpoint: Get list of users who have NOT voted yet
-app.get('/api/admin/non-voters', requireAdminAuth, async (req, res) => {
-  try {
-    const rows = await getNonVoters();
-    res.json({ success: true, count: rows.length, non_voters: rows });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch non-voters: ' + error.message });
   }
 });
 

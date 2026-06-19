@@ -78,6 +78,7 @@ const AdminPayments = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
   const [isReseeding, setIsReseeding] = useState(false);
+  const [isDownloadingNonVoters, setIsDownloadingNonVoters] = useState(false);
 
   const { logout } = useAdminAuth();
   const navigate = useNavigate();
@@ -231,6 +232,37 @@ const AdminPayments = () => {
       setError(err.message);
     } finally {
       setIsReleasing(false);
+    }
+  };
+
+  const handleDownloadNonVoters = async () => {
+    setIsDownloadingNonVoters(true);
+    setError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/non-voters`, { credentials: 'include' });
+      const result = await response.json();
+      if (response.status === 401) {
+        setError('Admin session expired. Please log out and log back in to download.');
+        return;
+      }
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to fetch non-voters list');
+      }
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(result.data, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `non_voters_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      
+      setSuccessMsg(`Successfully downloaded list of ${result.count} non-voters.`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to download non-voters list');
+    } finally {
+      setIsDownloadingNonVoters(false);
     }
   };
 
@@ -466,11 +498,21 @@ const AdminPayments = () => {
             </button>
           </div>
           
-          <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-xl">
-              <p className="text-gray-400/80 text-sm font-bold uppercase tracking-widest mb-1">Voter Turnout</p>
-              <div className="text-4xl font-black text-white flex items-baseline gap-2">
-                {totalVotes} <span className="text-lg font-medium text-gray-500 tracking-normal lowercase">voters</span>
+          <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
+              <div>
+                <p className="text-gray-400/80 text-sm font-bold uppercase tracking-widest mb-1">Voter Turnout</p>
+                <div className="text-4xl font-black text-white flex items-baseline gap-2 mb-4">
+                  {totalVotes} <span className="text-lg font-medium text-gray-500 tracking-normal lowercase">voters</span>
+                </div>
               </div>
+              <button 
+                onClick={handleDownloadNonVoters}
+                disabled={isDownloadingNonVoters}
+                className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+              >
+                {isDownloadingNonVoters && <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                Download Non-Voters JSON
+              </button>
           </div>
         </div>
       </div>
