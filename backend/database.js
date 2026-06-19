@@ -18,17 +18,29 @@ const db = new sqlite3.Database(dbPath, (err) => {
 // Auto-seed database if empty
 const autoSeedIfEmpty = () => {
   return new Promise((resolve) => {
+    const forceReseed = process.env.FORCE_RESEED === 'true';
+    
     db.get('SELECT COUNT(*) as count FROM users', async (err, row) => {
       if (err) {
         console.error('Error checking user count:', err.message);
         return resolve();
       }
-      if (row && row.count > 0) {
+      
+      const hasUsers = row && row.count > 0;
+      if (hasUsers && !forceReseed) {
         console.log(`Database already has ${row.count} users. Skipping seeding.`);
         return resolve();
       }
       
-      console.log('Database users table is empty. Starting auto-seeding...');
+      if (forceReseed) {
+        console.log('FORCE_RESEED is set to true. Clearing old voter records and sessions...');
+        await new Promise((res) => db.run("DELETE FROM sessions", () => res()));
+        await new Promise((res) => db.run("DELETE FROM admin_sessions", () => res()));
+        await new Promise((res) => db.run("DELETE FROM votes", () => res()));
+        await new Promise((res) => db.run("DELETE FROM users WHERE matric NOT LIKE 'ADMIN%'", () => res()));
+      }
+      
+      console.log('Starting auto-seeding...');
       try {
         const fs = require('fs');
         const jsonPath = path.join(__dirname, 'new_voters.json');
