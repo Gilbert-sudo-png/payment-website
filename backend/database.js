@@ -31,79 +31,43 @@ const autoSeedIfEmpty = () => {
       console.log('Database users table is empty. Starting auto-seeding...');
       try {
         const fs = require('fs');
-        const txtPath = path.join(__dirname, 'extracted_users.txt');
-        if (!fs.existsSync(txtPath)) {
-          console.warn('extracted_users.txt not found. Skipping seeding.');
+        const jsonPath = path.join(__dirname, 'new_voters.json');
+        if (!fs.existsSync(jsonPath)) {
+          console.warn('new_voters.json not found. Skipping seeding.');
           return resolve();
         }
         
-        const text = fs.readFileSync(txtPath, 'utf8');
-        const lines = text.split('\n');
-        let users = [];
-        let currentUser = { name: '', matric: '', email: '' };
-
-        const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i;
-        const matricRegex = /([0-9]{2}[A-Z]{2}[O0-9]+|ACU[0-9]+)/i;
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].replace(/\u200B/g, '').trim();
-          if (!line || line.length < 3) continue;
-
-          let matched = false;
-          if (emailRegex.test(line)) {
-            currentUser.email = line.match(emailRegex)[1].toLowerCase().trim();
-            matched = true;
-          }
-          if (matricRegex.test(line)) {
-            let m = line.match(matricRegex)[1].toUpperCase().trim();
-            m = m.replace(/O/g, '0');
-            currentUser.matric = m;
-            matched = true;
-          }
-          if (line.toLowerCase().includes('name:')) {
-            currentUser.name = line.split(/name\s*[:.-]*\s*/i)[1].trim();
-            matched = true;
-          } else if (/^\d+\.\s*[A-Za-z]/.test(line)) {
-            currentUser.name = line.replace(/^\d+\.\s*/, '').trim();
-            matched = true;
-          } else if (!matched && line.split(' ').length >= 2 && !currentUser.name) {
-            if (!/\d/.test(line)) {
-              currentUser.name = line;
-            }
-          }
-
-          if (currentUser.email && currentUser.matric) {
-            if (!currentUser.name) currentUser.name = 'Student ' + currentUser.matric;
-            currentUser.name = currentUser.name.replace(/Matric.*$/i, '').trim();
-            users.push({...currentUser});
-            currentUser = { name: '', matric: '', email: '' };
-          }
-        }
+        const users = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
 
         console.log(`Parsed ${users.length} users. Hashing dummy password...`);
         const dummyPasswordHash = await bcrypt.hash('password123', 10);
-
-        let insertedCount = 0;
-        let errorCount = 0;
+        const adminPasswordHash = await bcrypt.hash('admin123', 10);
 
         db.serialize(() => {
           db.run('BEGIN TRANSACTION');
           const stmt = db.prepare('INSERT OR IGNORE INTO users (name, matric, email, password_hash) VALUES (?, ?, ?, ?)');
           for (const user of users) {
-            stmt.run([user.name, user.matric, user.email, dummyPasswordHash], (err) => {
-              if (err) errorCount++;
-              else insertedCount++;
-            });
+            stmt.run([user.name, user.matric, user.email, dummyPasswordHash]);
           }
-          // Also insert Admin
-          stmt.run(['Admin', 'ADMIN001', 'admin@nuesa.com', dummyPasswordHash]);
+          
+          // Seed 4 admin accounts
+          const admins = [
+            ['President', 'ADMIN001', 'president@nuesa.com', adminPasswordHash],
+            ['General Secretary', 'ADMIN002', 'gensec@nuesa.com', adminPasswordHash],
+            ['Financial Secretary', 'ADMIN003', 'finsec@nuesa.com', adminPasswordHash],
+            ['PRO', 'ADMIN004', 'pro@nuesa.com', adminPasswordHash]
+          ];
+          
+          for (const admin of admins) {
+            stmt.run(admin);
+          }
           
           stmt.finalize();
           db.run('COMMIT', (err) => {
             if (err) {
               console.error('Error committing seed transaction:', err.message);
             } else {
-              console.log(`Auto-seeding complete. Inserted ${insertedCount} users successfully.`);
+              console.log(`Auto-seeding complete.`);
             }
             resolve();
           });
@@ -196,11 +160,20 @@ const initializeDatabase = () => {
         return;
       }
       console.log('Admins table ready.');
-      const adminPasswordHash = bcrypt.hashSync('admin123', 10);
-      db.run(
-        `INSERT OR IGNORE INTO admins (email, password_hash, name) VALUES (?, ?, ?)`,
-        ['admin@nuesa.acu.edu.ng', adminPasswordHash, 'Admin User']
-      );
+      // Seed all 4 admin accounts on first boot
+      const adminAccounts = [
+        { name: 'Gilbert Simon-Emieje',  email: 'gilbertemieje@gmail.com',   password: 'Nuesa@Admin1' },
+        { name: 'NUESA Admin 2',         email: 'admin2@nuesa.acu.edu.ng',   password: 'Nuesa@Admin2' },
+        { name: 'NUESA Admin 3',         email: 'admin3@nuesa.acu.edu.ng',   password: 'Nuesa@Admin3' },
+        { name: 'NUESA Admin 4',         email: 'admin4@nuesa.acu.edu.ng',   password: 'Nuesa@Admin4' },
+      ];
+      for (const a of adminAccounts) {
+        const hash = bcrypt.hashSync(a.password, 10);
+        db.run(
+          `INSERT OR IGNORE INTO admins (email, password_hash, name) VALUES (?, ?, ?)`,
+          [a.email, hash, a.name]
+        );
+      }
     });
 
     // Create admin_sessions table
