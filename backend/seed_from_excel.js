@@ -39,6 +39,9 @@ async function seed() {
       matric        TEXT    UNIQUE NOT NULL,
       email         TEXT    UNIQUE NOT NULL,
       password_hash TEXT    NOT NULL,
+      has_voted     INTEGER DEFAULT 0,
+      voting_code   TEXT,
+      code_expires_at DATETIME,
       created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);

@@ -106,6 +106,15 @@ const initializeDatabase = () => {
         return;
       }
       console.log('Payments table ready.');
+      // Add matric column if it doesn't exist (for backward compatibility)
+      db.run(`
+        ALTER TABLE payments ADD COLUMN matric TEXT
+      `, (err) => {
+        // Ignore error if column already exists
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding matric column:', err.message);
+        }
+      });
     });
 
     // Create users table
@@ -125,6 +134,16 @@ const initializeDatabase = () => {
         return;
       }
       console.log('Users table ready.');
+      // Voting System Additions - run only after table is created
+      db.run(`ALTER TABLE users ADD COLUMN has_voted INTEGER DEFAULT 0`, (err) => {
+        if (err && !err.message.includes('duplicate column')) console.error('Error adding has_voted:', err.message);
+      });
+      db.run(`ALTER TABLE users ADD COLUMN voting_code TEXT`, (err) => {
+        if (err && !err.message.includes('duplicate column')) console.error('Error adding voting_code:', err.message);
+      });
+      db.run(`ALTER TABLE users ADD COLUMN code_expires_at DATETIME`, (err) => {
+        if (err && !err.message.includes('duplicate column')) console.error('Error adding code_expires_at:', err.message);
+      });
     });
 
     // Create sessions table
@@ -194,27 +213,6 @@ const initializeDatabase = () => {
       autoSeedIfEmpty()
         .then(() => resolve())
         .catch(() => resolve());
-    });
-
-    // Add matric column to payments table if it doesn't exist (for backward compatibility)
-    db.run(`
-      ALTER TABLE payments ADD COLUMN matric TEXT
-    `, (err) => {
-      // Ignore error if column already exists
-      if (err && !err.message.includes('duplicate column')) {
-        console.error('Error adding matric column:', err.message);
-      }
-    });
-
-    // Voting System Additions
-    db.run(`ALTER TABLE users ADD COLUMN has_voted INTEGER DEFAULT 0`, (err) => {
-      if (err && !err.message.includes('duplicate column')) console.error('Error adding has_voted:', err.message);
-    });
-    db.run(`ALTER TABLE users ADD COLUMN voting_code TEXT`, (err) => {
-      if (err && !err.message.includes('duplicate column')) console.error('Error adding voting_code:', err.message);
-    });
-    db.run(`ALTER TABLE users ADD COLUMN code_expires_at DATETIME`, (err) => {
-      if (err && !err.message.includes('duplicate column')) console.error('Error adding code_expires_at:', err.message);
     });
 
     // Check if votes table has old constraint (user_id UNIQUE)
