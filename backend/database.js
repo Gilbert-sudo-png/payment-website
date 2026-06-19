@@ -18,29 +18,17 @@ const db = new sqlite3.Database(dbPath, (err) => {
 // Auto-seed database if empty
 const autoSeedIfEmpty = () => {
   return new Promise((resolve) => {
-    const forceReseed = process.env.FORCE_RESEED === 'true';
-    
     db.get('SELECT COUNT(*) as count FROM users', async (err, row) => {
       if (err) {
         console.error('Error checking user count:', err.message);
         return resolve();
       }
-      
-      const hasUsers = row && row.count > 0;
-      if (hasUsers && !forceReseed) {
+      if (row && row.count > 0) {
         console.log(`Database already has ${row.count} users. Skipping seeding.`);
         return resolve();
       }
       
-      if (forceReseed) {
-        console.log('FORCE_RESEED is set to true. Clearing old voter records and sessions...');
-        await new Promise((res) => db.run("DELETE FROM sessions", () => res()));
-        await new Promise((res) => db.run("DELETE FROM admin_sessions", () => res()));
-        await new Promise((res) => db.run("DELETE FROM votes", () => res()));
-        await new Promise((res) => db.run("DELETE FROM users WHERE matric NOT LIKE 'ADMIN%'", () => res()));
-      }
-      
-      console.log('Starting auto-seeding...');
+      console.log('Database users table is empty. Starting auto-seeding...');
       try {
         const fs = require('fs');
         const jsonPath = path.join(__dirname, 'new_voters.json');
@@ -118,15 +106,6 @@ const initializeDatabase = () => {
         return;
       }
       console.log('Payments table ready.');
-      // Add matric column if it doesn't exist (for backward compatibility)
-      db.run(`
-        ALTER TABLE payments ADD COLUMN matric TEXT
-      `, (err) => {
-        // Ignore error if column already exists
-        if (err && !err.message.includes('duplicate column')) {
-          console.error('Error adding matric column:', err.message);
-        }
-      });
     });
 
     // Create users table
@@ -146,16 +125,6 @@ const initializeDatabase = () => {
         return;
       }
       console.log('Users table ready.');
-      // Voting System Additions - run only after table is created
-      db.run(`ALTER TABLE users ADD COLUMN has_voted INTEGER DEFAULT 0`, (err) => {
-        if (err && !err.message.includes('duplicate column')) console.error('Error adding has_voted:', err.message);
-      });
-      db.run(`ALTER TABLE users ADD COLUMN voting_code TEXT`, (err) => {
-        if (err && !err.message.includes('duplicate column')) console.error('Error adding voting_code:', err.message);
-      });
-      db.run(`ALTER TABLE users ADD COLUMN code_expires_at DATETIME`, (err) => {
-        if (err && !err.message.includes('duplicate column')) console.error('Error adding code_expires_at:', err.message);
-      });
     });
 
     // Create sessions table
@@ -225,6 +194,27 @@ const initializeDatabase = () => {
       autoSeedIfEmpty()
         .then(() => resolve())
         .catch(() => resolve());
+    });
+
+    // Add matric column to payments table if it doesn't exist (for backward compatibility)
+    db.run(`
+      ALTER TABLE payments ADD COLUMN matric TEXT
+    `, (err) => {
+      // Ignore error if column already exists
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding matric column:', err.message);
+      }
+    });
+
+    // Voting System Additions
+    db.run(`ALTER TABLE users ADD COLUMN has_voted INTEGER DEFAULT 0`, (err) => {
+      if (err && !err.message.includes('duplicate column')) console.error('Error adding has_voted:', err.message);
+    });
+    db.run(`ALTER TABLE users ADD COLUMN voting_code TEXT`, (err) => {
+      if (err && !err.message.includes('duplicate column')) console.error('Error adding voting_code:', err.message);
+    });
+    db.run(`ALTER TABLE users ADD COLUMN code_expires_at DATETIME`, (err) => {
+      if (err && !err.message.includes('duplicate column')) console.error('Error adding code_expires_at:', err.message);
     });
 
     // Check if votes table has old constraint (user_id UNIQUE)
