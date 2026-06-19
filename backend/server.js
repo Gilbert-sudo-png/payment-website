@@ -562,7 +562,7 @@ app.post('/api/vote/generate-code', requireAuth, async (req, res) => {
     }
   } catch (error) {
     console.error('Error generating code:', error);
-    res.status(500).json({ error: `Failed to generate code: ${error.message}. Please contact admin.` });
+    res.status(500).json({ error: 'Failed to generate code. Please contact admin.' });
   }
 });
 
