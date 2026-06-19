@@ -707,7 +707,7 @@ const getSystemSetting = (key) => {
 const getNonVoters = () => {
   return new Promise((resolve, reject) => {
     db.all(
-      `SELECT name, matric, email FROM users WHERE (has_voted = 0 OR has_voted IS NULL) AND matric NOT LIKE 'ADMIN%' ORDER BY name`,
+      `SELECT name, matric, email FROM users WHERE (has_voted = 0 OR has_voted IS NULL) AND matric != 'ADMIN001' ORDER BY name`,
       [],
       (err, rows) => {
         if (err) reject(err);

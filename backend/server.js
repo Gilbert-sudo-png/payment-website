@@ -26,8 +26,7 @@ const {
   getVotingResults,
   getVoterCount,
   getSystemSetting,
-  updateSystemSetting,
-  getNonVoters
+  updateSystemSetting
 } = require('./database');
 const nodemailer = require('nodemailer');
 
@@ -408,7 +407,7 @@ app.post('/api/admin/login', async (req, res) => {
 });
 
 // Get all payments endpoint (admin only)
-app.get('/api/payments', async (req, res) => {
+app.get('/api/payments', requireAdminAuth, async (req, res) => {
   try {
     const payments = await getAllPayments();
     res.json({
@@ -426,7 +425,7 @@ app.get('/api/payments', async (req, res) => {
 });
 
 // Get all users endpoint (admin only)
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', requireAdminAuth, async (req, res) => {
   try {
     const users = await getAllUsers();
     res.json({
@@ -444,7 +443,7 @@ app.get('/api/users', async (req, res) => {
 });
 
 // Add new user endpoint (admin only)
-app.post('/api/admin/users', async (req, res) => {
+app.post('/api/admin/users', requireAdminAuth, async (req, res) => {
   try {
     const { name, matric, email } = req.body;
     
@@ -627,21 +626,6 @@ app.get('/api/admin/votes', requireAdminAuth, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch voting results.' });
-  }
-});
-
-// Admin Endpoint: Get Non-Voters List
-app.get('/api/admin/non-voters', requireAdminAuth, async (req, res) => {
-  try {
-    const nonVoters = await getNonVoters();
-    res.json({
-      success: true,
-      count: nonVoters.length,
-      data: nonVoters
-    });
-  } catch (error) {
-    console.error('Error fetching non-voters:', error);
-    res.status(500).json({ error: 'Failed to fetch non-voters list.' });
   }
 });
 
