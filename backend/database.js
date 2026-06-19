@@ -116,6 +116,9 @@ const initializeDatabase = () => {
         matric TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
+        voting_code TEXT,
+        code_expires_at DATETIME,
+        has_voted INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `, (err) => {

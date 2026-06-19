@@ -506,7 +506,7 @@ app.get('/api/vote/status', requireAuth, async (req, res) => {
       results
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch voting status' });
+    res.status(500).json({ error: 'Failed to fetch voting status: ' + (error.message || error) });
   }
 });
 
@@ -562,7 +562,7 @@ app.post('/api/vote/generate-code', requireAuth, async (req, res) => {
     }
   } catch (error) {
     console.error('Error generating code:', error);
-    res.status(500).json({ error: 'Failed to generate code. Please contact admin.' });
+    res.status(500).json({ error: 'Failed to generate code: ' + (error.message || error) });
   }
 });
 
@@ -582,7 +582,7 @@ app.post('/api/vote/verify-otp', requireAuth, async (req, res) => {
     res.json({ success: true, message: 'OTP code verified successfully.' });
   } catch (error) {
     console.error('OTP verification error:', error);
-    res.status(500).json({ error: 'Failed to verify OTP.' });
+    res.status(500).json({ error: 'Failed to verify OTP: ' + (error.message || error) });
   }
 });
 
