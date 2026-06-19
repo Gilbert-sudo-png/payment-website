@@ -672,98 +672,97 @@ const castVote = (userId, candidateIds) => {
     });
   });
 };
-
-const getVotingResults = () => {
-  return new Promise((resolve, reject) => {
-    db.all(
-      `SELECT candidate_id, COUNT(*) as vote_count 
+  function getVotingResults() {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT candidate_id, COUNT(*) as vote_count 
        FROM votes 
        GROUP BY candidate_id`,
-      [],
-      (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      }
-    );
-  });
-};
+        [],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+  }
 
-const getVoterCount = () => {
-  return new Promise((resolve, reject) => {
-    db.get(
-      'SELECT COUNT(DISTINCT user_id) as count FROM votes',
-      [],
-      (err, row) => {
-        if (err) reject(err);
-        else resolve(row ? row.count : 0);
-      }
-    );
-  });
-};
+  const getVoterCount = () => {
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT COUNT(DISTINCT user_id) as count FROM votes',
+        [],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row ? row.count : 0);
+        }
+      );
+    });
+  };
 
-const getSystemSetting = (key) => {
-  return new Promise((resolve, reject) => {
-    db.get(
-      'SELECT setting_value FROM system_settings WHERE setting_key = ?',
-      [key],
-      (err, row) => {
-        if (err) reject(err);
-        else resolve(row ? row.setting_value : null);
-      }
-    );
-  });
-};
+  const getSystemSetting = (key) => {
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT setting_value FROM system_settings WHERE setting_key = ?',
+        [key],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row ? row.setting_value : null);
+        }
+      );
+    });
+  };
 
-const getNonVoters = () => {
-  return new Promise((resolve, reject) => {
-    db.all(
-      `SELECT name, matric, email FROM users WHERE (has_voted = 0 OR has_voted IS NULL) AND matric != 'ADMIN001' ORDER BY name`,
-      [],
-      (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      }
-    );
-  });
-};
+  const getNonVoters = () => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT name, matric, email FROM users WHERE (has_voted = 0 OR has_voted IS NULL) AND matric != 'ADMIN001' ORDER BY name`,
+        [],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+  };
 
-const updateSystemSetting = (key, value) => {
-  return new Promise((resolve, reject) => {
-    db.run(
-      'INSERT OR REPLACE INTO system_settings (setting_key, setting_value) VALUES (?, ?)',
-      [key, value],
-      function (err) {
-        if (err) reject(err);
-        else resolve(true);
-      }
-    );
-  });
-};
+  const updateSystemSetting = (key, value) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT OR REPLACE INTO system_settings (setting_key, setting_value) VALUES (?, ?)',
+        [key, value],
+        function (err) {
+          if (err) reject(err);
+          else resolve(true);
+        }
+      );
+    });
+  };
 
-module.exports = {
-  initializeDatabase,
-  savePayment,
-  getPaymentByReference,
-  getAllPayments,
-  createUser,
-  getUserByMatric,
-  getUserById,
-  getAllUsers,
-  verifyPassword,
-  createSession,
-  getSession,
-  deleteSession,
-  cleanupOldSessions,
-  getAdminByEmail,
-  createAdminSession,
-  getAdminSession,
-  deleteAdminSession,
-  setVotingCode,
-  verifyVotingCode,
-  castVote,
-  getVotingResults,
-  getVoterCount,
-  getSystemSetting,
-  updateSystemSetting,
-  getNonVoters
-};
+  module.exports = {
+    initializeDatabase,
+    savePayment,
+    getPaymentByReference,
+    getAllPayments,
+    createUser,
+    getUserByMatric,
+    getUserById,
+    getAllUsers,
+    verifyPassword,
+    createSession,
+    getSession,
+    deleteSession,
+    cleanupOldSessions,
+    getAdminByEmail,
+    createAdminSession,
+    getAdminSession,
+    deleteAdminSession,
+    setVotingCode,
+    verifyVotingCode,
+    castVote,
+    getVotingResults,
+    getVoterCount,
+    getSystemSetting,
+    updateSystemSetting,
+    getNonVoters
+  };
