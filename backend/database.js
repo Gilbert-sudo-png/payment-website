@@ -15,64 +15,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-// Force-reseed: wipe old voters and reload from new_voters.json
-// Triggered by FORCE_RESEED=true environment variable
-const forceReseedIfRequested = () => {
-  return new Promise(async (resolve) => {
-    if (process.env.FORCE_RESEED !== 'true') return resolve();
-
-    console.log('⚠️  FORCE_RESEED=true detected. Clearing old voters and reseeding...');
-    try {
-      const fs = require('fs');
-      const jsonPath = path.join(__dirname, 'new_voters.json');
-      if (!fs.existsSync(jsonPath)) {
-        console.warn('new_voters.json not found. Cannot force reseed.');
-        return resolve();
-      }
-
-      const users = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-      const dummyPasswordHash = await bcrypt.hash('password123', 10);
-
-      // Clear old data
-      await new Promise(res => db.run(`DELETE FROM votes`,          () => res()));
-      await new Promise(res => db.run(`DELETE FROM voting_sessions`, () => res()));
-      await new Promise(res => db.run(`DELETE FROM users WHERE matric NOT LIKE 'ADMIN%'`, () => res()));
-
-      // Insert new voters
-      await new Promise((res, rej) => {
-        db.serialize(() => {
-          db.run('BEGIN TRANSACTION');
-          const stmt = db.prepare('INSERT OR IGNORE INTO users (name, matric, email, password_hash) VALUES (?, ?, ?, ?)');
-          for (const u of users) {
-            stmt.run([u.name, u.matric, u.email, dummyPasswordHash]);
-          }
-          stmt.finalize();
-          db.run('COMMIT', (err) => {
-            if (err) { console.error('Force-reseed commit error:', err.message); rej(err); }
-            else { console.log(`✅ Force-reseed complete. ${users.length} voters loaded.`); res(); }
-          });
-        });
-      });
-
-      // Also insert/update the 4 admin accounts in the admins table
-      const adminList = [
-        { name: 'Gilbert Simon-Emieje', email: 'gilbertemieje@gmail.com', password: 'Nuesa@Admin1' },
-        { name: 'NUESA Admin 2',        email: 'admin2@nuesa.acu.edu.ng', password: 'Nuesa@Admin2' },
-        { name: 'NUESA Admin 3',        email: 'admin3@nuesa.acu.edu.ng', password: 'Nuesa@Admin3' },
-        { name: 'NUESA Admin 4',        email: 'admin4@nuesa.acu.edu.ng', password: 'Nuesa@Admin4' },
-      ];
-      for (const a of adminList) {
-        const hash = bcrypt.hashSync(a.password, 10);
-        db.run(`INSERT OR REPLACE INTO admins (email, password_hash, name) VALUES (?, ?, ?)`, [a.email, hash, a.name]);
-      }
-
-    } catch (err) {
-      console.error('Force-reseed error:', err.message);
-    }
-    resolve();
-  });
-};
-
 // Auto-seed database if empty
 const autoSeedIfEmpty = () => {
   return new Promise((resolve) => {
@@ -97,8 +39,9 @@ const autoSeedIfEmpty = () => {
         
         const users = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
 
-        console.log(`Seeding ${users.length} users...`);
+        console.log(`Parsed ${users.length} users. Hashing dummy password...`);
         const dummyPasswordHash = await bcrypt.hash('password123', 10);
+        const adminPasswordHash = await bcrypt.hash('admin123', 10);
 
         db.serialize(() => {
           db.run('BEGIN TRANSACTION');
@@ -106,10 +49,26 @@ const autoSeedIfEmpty = () => {
           for (const user of users) {
             stmt.run([user.name, user.matric, user.email, dummyPasswordHash]);
           }
+          
+          // Seed 4 admin accounts
+          const admins = [
+            ['President', 'ADMIN001', 'president@nuesa.com', adminPasswordHash],
+            ['General Secretary', 'ADMIN002', 'gensec@nuesa.com', adminPasswordHash],
+            ['Financial Secretary', 'ADMIN003', 'finsec@nuesa.com', adminPasswordHash],
+            ['PRO', 'ADMIN004', 'pro@nuesa.com', adminPasswordHash]
+          ];
+          
+          for (const admin of admins) {
+            stmt.run(admin);
+          }
+          
           stmt.finalize();
           db.run('COMMIT', (err) => {
-            if (err) console.error('Error committing seed transaction:', err.message);
-            else console.log(`Auto-seeding complete. ${users.length} voters loaded.`);
+            if (err) {
+              console.error('Error committing seed transaction:', err.message);
+            } else {
+              console.log(`Auto-seeding complete.`);
+            }
             resolve();
           });
         });
@@ -232,8 +191,7 @@ const initializeDatabase = () => {
         return;
       }
       console.log('Admin sessions table ready.');
-      forceReseedIfRequested()
-        .then(() => autoSeedIfEmpty())
+      autoSeedIfEmpty()
         .then(() => resolve())
         .catch(() => resolve());
     });
