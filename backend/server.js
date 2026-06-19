@@ -265,7 +265,7 @@ app.post('/api/auth/signup', async (req, res) => {
     // Set cookie
     res.cookie('session_id', sessionId, {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
@@ -315,7 +315,7 @@ app.post('/api/auth/login', async (req, res) => {
     // Set cookie
     res.cookie('session_id', sessionId, {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
@@ -382,7 +382,7 @@ app.post('/api/admin/login', async (req, res) => {
     const sessionId = await createAdminSession(admin.id);
     res.cookie('admin_session_id', sessionId, {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
