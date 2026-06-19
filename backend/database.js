@@ -622,42 +622,52 @@ const castVote = (userId, candidateIds) => {
       return reject(new Error('No candidate IDs provided'));
     }
 
-    db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
-
-      const stmt = db.prepare('INSERT INTO votes (user_id, candidate_id) VALUES (?, ?)');
-      let errorOccurred = null;
-
-      for (const cid of ids) {
-        stmt.run([userId, cid], (err) => {
-          if (err) {
-            errorOccurred = err;
-          }
-        });
+    db.get('SELECT has_voted FROM users WHERE id = ?', [userId], (err, user) => {
+      if (err) {
+        console.error('Error checking has_voted:', err.message);
+        return reject(err);
+      }
+      if (user && user.has_voted === 1) {
+        return reject(new Error('User has already voted'));
       }
 
-      stmt.finalize((err) => {
-        if (err || errorOccurred) {
-          db.run('ROLLBACK');
-          const finalErr = err || errorOccurred;
-          if (finalErr.message.includes('UNIQUE constraint failed')) {
-            return reject(new Error('User has already voted'));
-          }
-          return reject(finalErr);
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        const stmt = db.prepare('INSERT INTO votes (user_id, candidate_id) VALUES (?, ?)');
+        let errorOccurred = null;
+
+        for (const cid of ids) {
+          stmt.run([userId, cid], (err) => {
+            if (err) {
+              errorOccurred = err;
+            }
+          });
         }
 
-        db.run(
-          'UPDATE users SET has_voted = 1, voting_code = NULL, code_expires_at = NULL WHERE id = ?',
-          [userId],
-          (err) => {
-            if (err) {
-              db.run('ROLLBACK');
-              return reject(err);
+        stmt.finalize((err) => {
+          if (err || errorOccurred) {
+            db.run('ROLLBACK');
+            const finalErr = err || errorOccurred;
+            if (finalErr.message.includes('UNIQUE constraint failed')) {
+              return reject(new Error('User has already voted'));
             }
-            db.run('COMMIT');
-            resolve(true);
+            return reject(finalErr);
           }
-        );
+
+          db.run(
+            'UPDATE users SET has_voted = 1, voting_code = NULL, code_expires_at = NULL WHERE id = ?',
+            [userId],
+            (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                return reject(err);
+              }
+              db.run('COMMIT');
+              resolve(true);
+            }
+          );
+        });
       });
     });
   });

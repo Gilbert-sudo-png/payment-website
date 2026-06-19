@@ -95,9 +95,9 @@ const VotingPage = () => {
           setResultsData(data.results);
         }
 
-        // If they can vote, show the first confirmation modal immediately
+        // If they can vote, unlock the ballot immediately
         if (!data.has_voted && !data.results_released) {
-          setShowConfirmModal(true);
+          setBallotUnlocked(true);
         }
       }
     } catch (error) {
@@ -195,7 +195,6 @@ const VotingPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: otpCode,
           candidateIds: selectedIds
         }),
         credentials: 'include'
@@ -212,12 +211,7 @@ const VotingPage = () => {
         setSuccessMsg(data.message || 'Ballot submitted successfully!');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        setErrorMsg(data.error || 'Failed to submit ballot. Try re-entering your OTP.');
-        // Re-open OTP modal if verification failed
-        if (data.error && data.error.includes('expired') || data.error.includes('code')) {
-          setBallotUnlocked(false);
-          setShowOtpModal(true);
-        }
+        setErrorMsg(data.error || 'Failed to submit ballot.');
       }
     } catch (err) {
       setErrorMsg('Network error. Failed to cast ballot.');

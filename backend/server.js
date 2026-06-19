@@ -589,16 +589,10 @@ app.post('/api/vote/verify-otp', requireAuth, async (req, res) => {
 // Submit Vote
 app.post('/api/vote/submit', requireAuth, async (req, res) => {
   try {
-    const { code, candidateIds } = req.body;
+    const { candidateIds } = req.body;
     
-    if (!code || !candidateIds || !Array.isArray(candidateIds) || candidateIds.length === 0) {
-      return res.status(400).json({ error: 'Code and candidate IDs array are required.' });
-    }
-
-    // Verify code
-    const verification = await verifyVotingCode(req.user.id, code.trim());
-    if (!verification.valid) {
-      return res.status(400).json({ error: verification.message });
+    if (!candidateIds || !Array.isArray(candidateIds) || candidateIds.length === 0) {
+      return res.status(400).json({ error: 'Candidate IDs array is required.' });
     }
 
     // Cast vote
