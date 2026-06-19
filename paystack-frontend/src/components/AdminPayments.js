@@ -115,13 +115,21 @@ const AdminPayments = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/admin/votes`, { credentials: 'include' });
       const result = await response.json();
-      if (!response.ok || !result.success) return; // Silent fail if not available
+      if (response.status === 401) {
+        setError('Admin session expired. Please log out and log back in to see election results.');
+        return;
+      }
+      if (!response.ok || !result.success) {
+        setError('Failed to load election results: ' + (result.error || 'Unknown error'));
+        return;
+      }
       
       setVoteResults(result.results || []);
       setTotalVotes(result.total_votes || 0);
       setResultsReleased(result.results_released || false);
     } catch (err) {
       console.error(err);
+      setError('Network error loading election results.');
     }
   };
 
