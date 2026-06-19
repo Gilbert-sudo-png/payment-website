@@ -26,7 +26,8 @@ const {
   getVotingResults,
   getVoterCount,
   getSystemSetting,
-  updateSystemSetting
+  updateSystemSetting,
+  getNonVoters
 } = require('./database');
 const nodemailer = require('nodemailer');
 
@@ -641,6 +642,16 @@ app.post('/api/admin/votes/release', requireAdminAuth, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update system setting.' });
+  }
+});
+
+// Admin Endpoint: Get list of users who have NOT voted yet
+app.get('/api/admin/non-voters', requireAdminAuth, async (req, res) => {
+  try {
+    const rows = await getNonVoters();
+    res.json({ success: true, count: rows.length, non_voters: rows });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch non-voters: ' + error.message });
   }
 });
 

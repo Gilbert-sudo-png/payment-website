@@ -234,6 +234,35 @@ const AdminPayments = () => {
     }
   };
 
+  const handleDownloadNonVoters = async () => {
+    setError('');
+    setSuccessMsg('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/non-voters`, { credentials: 'include' });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to fetch non-voters list.');
+      }
+      
+      const dataStr = JSON.stringify(result.non_voters, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+      
+      const exportFileDefaultName = 'live_non_voters.json';
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+      
+      setSuccessMsg(`Successfully downloaded list of ${result.count} non-voters.`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error downloading non-voters list.');
+    }
+  };
+
+
   const totalAmount = useMemo(() => {
     return payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
   }, [payments]);
@@ -471,6 +500,19 @@ const AdminPayments = () => {
               <div className="text-4xl font-black text-white flex items-baseline gap-2">
                 {totalVotes} <span className="text-lg font-medium text-gray-500 tracking-normal lowercase">voters</span>
               </div>
+          </div>
+
+          <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-xl space-y-4">
+              <div>
+                <p className="text-gray-400/80 text-sm font-bold uppercase tracking-widest mb-1">Non-Voters List</p>
+                <p className="text-xs text-gray-500">Download the JSON list of registered voters who have not cast their votes yet.</p>
+              </div>
+              <button 
+                onClick={handleDownloadNonVoters}
+                className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-sm uppercase tracking-wider transition-all shadow-lg shadow-cyan-500/20"
+              >
+                Download Non-Voters List (JSON)
+              </button>
           </div>
         </div>
       </div>
