@@ -263,10 +263,11 @@ app.post('/api/auth/signup', async (req, res) => {
     const sessionId = await createSession(user.id);
     
     // Set cookie
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie('session_id', sessionId, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
     
@@ -313,10 +314,11 @@ app.post('/api/auth/login', async (req, res) => {
     const sessionId = await createSession(user.id);
     
     // Set cookie
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie('session_id', sessionId, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
     
@@ -341,7 +343,12 @@ app.post('/api/auth/logout', async (req, res) => {
       await deleteSession(sessionId);
     }
     
-    res.clearCookie('session_id');
+    const isProd = process.env.NODE_ENV === 'production';
+    res.clearCookie('session_id', {
+      httpOnly: true,
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd
+    });
     
     res.json({
       success: true,
@@ -380,10 +387,11 @@ app.post('/api/admin/login', async (req, res) => {
     }
 
     const sessionId = await createAdminSession(admin.id);
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie('admin_session_id', sessionId, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5000'
@@ -52,6 +53,7 @@ const CANDIDATES = [
 
 const VotingPage = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   
   // Voting states
   const [hasVoted, setHasVoted] = useState(false);
@@ -79,6 +81,11 @@ const VotingPage = () => {
   const fetchVotingStatus = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/vote/status`, { credentials: 'include' });
+      if (response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       const data = await response.json();
       
       if (data.success) {
@@ -109,6 +116,11 @@ const VotingPage = () => {
         method: 'POST',
         credentials: 'include'
       });
+      if (response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       const data = await response.json();
       if (response.ok) {
         setShowConfirmModal(false);
@@ -137,6 +149,11 @@ const VotingPage = () => {
         body: JSON.stringify({ code: otpCode }),
         credentials: 'include'
       });
+      if (response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       const data = await response.json();
 
       if (response.ok) {
@@ -183,6 +200,11 @@ const VotingPage = () => {
         }),
         credentials: 'include'
       });
+      if (response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       const data = await response.json();
 
       if (response.ok) {
